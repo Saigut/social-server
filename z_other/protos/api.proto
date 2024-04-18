@@ -1,0 +1,260 @@
+syntax = "proto3";
+
+package gen_grpc;
+
+// command：
+// golang（proto 文件中不指定 go_package）：
+//    protoc --go_out=. --go_opt=paths=source_relative --go_opt=Mapi.proto='social_server/src/gen/grpc;gen_grpc' --go-grpc_out=. --go-grpc_opt=paths=source_relative --go-grpc_opt=Mapi.proto='social_server/src/gen/grpc;gen_grpc' ./api.proto
+// golang：
+//    protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative ./api.proto
+option go_package = "social_server/src/gen/grpc;gen_grpc";
+
+
+// Session Service
+service GrpcApi {
+  // 会话
+  rpc SessRegister(SessRegisterReq) returns (SessRegisterRes);
+  rpc SessUnregister(SessUnregisterReq) returns (SessUnregisterRes);
+  rpc SessUserLogin(SessUserLoginReq) returns (SessUserLoginRes);
+  rpc SessUserLogout(SessUserLogoutReq) returns (SessUserLogoutRes);
+
+  // 用户管理
+  rpc UmAddFriends(UmAddFriendsReq) returns (UmAddFriendsRes);
+  rpc UmDelFriends(UmDelFriendsReq) returns (UmDelFriendsRes);
+  rpc UmListFriends(UmListFriendsReq) returns (UmListFriendsRes);
+
+  // 聊天
+  rpc ChatGetChatMsg(ChatGetChatMsgReq) returns (ChatGetChatMsgRes);
+  rpc ChatGetChatMsgHistWith(ChatGetChatMsgHistWithReq) returns (ChatGetChatMsgHistWithRes);
+  rpc ChatSendChatMsgTo(ChatSendChatMsgToReq) returns (ChatSendChatMsgToRes);
+  rpc ChatGetChatConvId(ChatGetChatConvIdReq) returns (ChatGetChatConvIdRes);
+
+  // Post
+  rpc PostPutPost(PostPutPostReq) returns (PostPutPostRes);
+  rpc PostGetVideoHls(PostGetVideoHlsReq) returns (PostGetVideoHlsRes);
+  rpc PostGetPostList(PostGetPostListReq) returns (PostGetPostListRes);
+  rpc PostGetPostMetadata(PostGetPostMetadataReq) returns (PostGetPostMetadataRes);
+  rpc PostGetExplorerVideoList(PostGetExplorerVideoListReq) returns (PostGetExplorerVideoListRes);
+  rpc PostGetLikes(PostGetLikesReq) returns (PostGetLikesRes);
+  rpc PostDoLike(PostDoLikeReq) returns (PostDoLikeRes);
+  rpc PostUndoLike(PostUndoLikeReq) returns (PostUndoLikeRes);
+  rpc PostGetComments(PostGetCommentsReq) returns (PostGetCommentsRes);
+  rpc PostAddComment(PostAddCommentReq) returns (PostAddCommentRes);
+  rpc PostDelComment(PostDelCommentReq) returns (PostDelCommentRes);
+}
+
+
+// Session
+message SessRegisterReq {
+  string userid = 2;
+  string passphase = 3;
+  string nickname = 1;
+  string email = 4;
+}
+message SessRegisterRes {
+  int32 ret = 1;
+}
+
+message SessUnregisterReq {
+}
+message SessUnregisterRes {
+  int32 ret = 1;
+}
+
+message SessUserLoginReq {
+  string userid = 1;
+  string passphase = 2;
+}
+message SessUserLoginRes {
+  int32 ret = 1;
+  string sessToken = 2;
+}
+
+message SessUserLogoutReq {
+  string uid = 1;
+  string sessToken = 2;
+}
+message SessUserLogoutRes {
+  int32 ret = 1;
+}
+
+// User Management
+message UmFriendInfo {
+  string userid = 2;
+  string nickname = 1;
+  string remark_name = 3;
+}
+
+message UmAddFriendsReq {
+  string uid = 1;
+  repeated string friends_uid = 2;
+}
+message UmAddFriendsRes {
+  int32 ret = 1;
+}
+
+message UmDelFriendsReq {
+  string uid = 1;
+  repeated string friends_uid = 2;
+}
+message UmDelFriendsRes {
+  int32 ret = 1;
+}
+
+message UmListFriendsReq {
+  string uid = 1;
+}
+message UmListFriendsRes {
+  int32 ret = 1;
+  repeated UmFriendInfo friends = 2;
+}
+
+
+// Chat
+message ChatMsg {
+  string senderUid = 1;
+  uint64 sentTsMs = 2;
+  uint32 msgType = 3;
+  string msgContent = 4;
+}
+
+message ChatConvInfo {
+  uint32 convId = 2;
+  repeated string uidList = 1;
+}
+
+message ChatGetChatMsgReq {
+}
+message ChatGetChatMsgRes {
+  int32 ret = 1;
+  repeated ChatMsg msgs = 2;
+}
+
+message ChatGetChatMsgHistWithReq {
+  uint64 convId = 1;
+}
+message ChatGetChatMsgHistWithRes {
+  int32 ret = 1;
+  repeated ChatMsg msgs = 2;
+}
+
+message ChatSendChatMsgToReq {
+  uint64 convId = 1;
+  ChatMsg msg = 2;
+}
+message ChatSendChatMsgToRes {
+  int32 ret = 1;
+}
+
+message ChatGetChatConvIdReq {
+  string uid1 = 1;
+  string uid2 = 2;
+}
+message ChatGetChatConvIdRes {
+  int32 ret = 1;
+  ChatConvInfo convInfo = 2;
+}
+
+
+// Post
+message PostMetadata {
+  uint64 postId = 1;
+  string uid = 2;
+  uint64 tsMs = 3;
+  string des = 4;
+  repeated string videoHlsList = 5;
+}
+
+message PostComment {
+  uint64 tsMs = 1;
+  repeated string content = 2;
+}
+
+message PostPutPostReq {
+  uint64 tsMs = 2;
+  bytes fileBuf = 3;
+  string des = 4;
+}
+message PostPutPostRes {
+  int32 ret = 1;
+}
+
+message PostGetVideoHlsReq {
+  uint64 postId = 1;
+  string hlsFileName = 2;
+}
+message PostGetVideoHlsRes {
+  int32 ret = 1;
+  repeated string hlsUrls = 2;
+}
+
+message PostGetPostListReq {
+  string uid = 1;
+}
+message PostGetPostListRes {
+  int32 ret = 1;
+  repeated PostMetadata posts = 2;
+}
+
+message PostGetPostMetadataReq {
+  uint64 postId = 1;
+}
+message PostGetPostMetadataRes {
+  int32 ret = 1;
+  PostMetadata metadata = 2;
+}
+
+message PostGetExplorerVideoListReq {
+}
+message PostGetExplorerVideoListRes {
+  int32 ret = 1;
+  repeated PostMetadata posts = 2;
+}
+
+message PostGetLikesReq {
+  uint64 postId = 1;
+}
+message PostGetLikesRes {
+  int32 ret = 1;
+  repeated string uids = 2;
+}
+
+message PostDoLikeReq {
+  uint64 postId = 1;
+  string uid = 2;
+}
+message PostDoLikeRes {
+  int32 ret = 1;
+}
+
+message PostUndoLikeReq {
+  uint64 postId = 1;
+  string uid = 2;
+}
+message PostUndoLikeRes {
+  int32 ret = 1;
+}
+
+message PostGetCommentsReq {
+  uint64 postId = 1;
+}
+message PostGetCommentsRes {
+  int32 ret = 1;
+  repeated PostComment comments = 2;
+}
+
+message PostAddCommentReq {
+  uint64 postId = 1;
+  PostComment comment = 2;
+}
+message PostAddCommentRes {
+  int32 ret = 1;
+}
+
+message PostDelCommentReq {
+  uint64 postId = 1;
+  uint64 commentId = 2;
+}
+message PostDelCommentRes {
+  int32 ret = 1;
+}
