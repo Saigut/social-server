@@ -13,12 +13,12 @@ option go_package = "social_server/src/gen/grpc;gen_grpc";
 // Session Service
 service GrpcApi {
   // 会话
-  rpc SessRegister(SessRegisterReq) returns (SessRegisterRes);
-  rpc SessUnregister(SessUnregisterReq) returns (SessUnregisterRes);
   rpc SessUserLogin(SessUserLoginReq) returns (SessUserLoginRes);
   rpc SessUserLogout(SessUserLogoutReq) returns (SessUserLogoutRes);
 
   // 用户管理
+  rpc UmRegister(UmRegisterReq) returns (UmRegisterRes);
+  rpc UmUnregister(UmUnregisterReq) returns (UmUnregisterRes);
   rpc UmAddFriends(UmAddFriendsReq) returns (UmAddFriendsRes);
   rpc UmDelFriends(UmDelFriendsReq) returns (UmDelFriendsRes);
   rpc UmListFriends(UmListFriendsReq) returns (UmListFriendsRes);
@@ -43,79 +43,101 @@ service GrpcApi {
   rpc PostDelComment(PostDelCommentReq) returns (PostDelCommentRes);
 }
 
+enum ErrCode {
+  emErrCode_Ok = 0;
+  emErrCode_UnknownErr = 1;
 
-// Session
-message SessRegisterReq {
-  string userid = 2;
-  string passphase = 3;
-  string nickname = 1;
-  string email = 4;
-}
-message SessRegisterRes {
-  int32 ret = 1;
-}
+  emErrCode_UserNotRegistered = 10;
+  emErrCode_UserAlreadyRegistered = 11;
+  emErrCode_UserFailedToAuth = 12;
 
-message SessUnregisterReq {
-}
-message SessUnregisterRes {
-  int32 ret = 1;
+  emErrCode_SessNotExisted = 20;
+
+  emErrCode_ConvIdNotExisted = 30;
 }
 
+// 会话接口参数
 message SessUserLoginReq {
-  string userid = 1;
+  string userName = 1;
   string passphase = 2;
 }
 message SessUserLoginRes {
-  int32 ret = 1;
-  string sessToken = 2;
+  ErrCode errCode = 1;
+  string sessId = 2;
 }
 
 message SessUserLogoutReq {
-  string uid = 1;
-  string sessToken = 2;
+  string sessId = 1;
 }
 message SessUserLogoutRes {
-  int32 ret = 1;
+  ErrCode errCode = 1;
 }
 
-// User Management
+// 用户管理接口参数
 message UmFriendInfo {
-  string userid = 2;
-  string nickname = 1;
-  string remark_name = 3;
+  string userName = 1;
+  string nickName = 2;
+  string remarkName = 3;
+  // 添加朋友时不需要 uid
+  string uid = 4;
+}
+
+message UmRegisterReq {
+  string userName = 1;
+  string passphase = 2;
+  string email = 3;
+}
+message UmRegisterRes {
+  ErrCode errCode = 1;
+}
+
+message UmUnregisterReq {
+  string sessId = 1;
+}
+message UmUnregisterRes {
+  ErrCode errCode = 1;
 }
 
 message UmAddFriendsReq {
-  string uid = 1;
-  repeated string friends_uid = 2;
+  string sessId = 1;
+  repeated UmFriendInfo friendList = 2;
 }
 message UmAddFriendsRes {
-  int32 ret = 1;
+  ErrCode errCode = 1;
 }
 
 message UmDelFriendsReq {
-  string uid = 1;
-  repeated string friends_uid = 2;
+  string sessId = 1;
+  repeated string friendUidList = 2;
 }
 message UmDelFriendsRes {
-  int32 ret = 1;
+  ErrCode errCode = 1;
 }
 
 message UmListFriendsReq {
-  string uid = 1;
+  string sessId = 1;
 }
 message UmListFriendsRes {
-  int32 ret = 1;
-  repeated UmFriendInfo friends = 2;
+  ErrCode errCode = 1;
+  repeated UmFriendInfo friendList = 2;
 }
 
 
-// Chat
+// 聊天接口参数
+enum ChatMsgType {
+  emChatMsgType_Text = 0;
+}
+
 message ChatMsg {
   string senderUid = 1;
   uint64 sentTsMs = 2;
-  uint32 msgType = 3;
+  ChatMsgType msgType = 3;
   string msgContent = 4;
+}
+
+message ChatConvMsg {
+  uint32 convId = 1;
+  repeated ChatMsg msgList = 2;
 }
 
 message ChatConvInfo {
@@ -124,39 +146,42 @@ message ChatConvInfo {
 }
 
 message ChatGetChatMsgReq {
+  string sessId = 1;
 }
 message ChatGetChatMsgRes {
-  int32 ret = 1;
-  repeated ChatMsg msgs = 2;
+  ErrCode errCode = 1;
+  repeated ChatConvMsg msgList = 2;
 }
 
 message ChatGetChatMsgHistWithReq {
-  uint64 convId = 1;
+  string sessId = 1;
+  uint64 convId = 2;
 }
 message ChatGetChatMsgHistWithRes {
-  int32 ret = 1;
-  repeated ChatMsg msgs = 2;
+  ErrCode errCode = 1;
+  repeated ChatMsg msgList = 2;
 }
 
 message ChatSendChatMsgToReq {
-  uint64 convId = 1;
-  ChatMsg msg = 2;
+  string sessId = 1;
+  ChatConvMsg msg = 2;
 }
 message ChatSendChatMsgToRes {
-  int32 ret = 1;
+  ErrCode errCode = 1;
 }
 
 message ChatGetChatConvIdReq {
-  string uid1 = 1;
-  string uid2 = 2;
+  string sessId = 1;
+  string uid1 = 2;
+  string uid2 = 3;
 }
 message ChatGetChatConvIdRes {
-  int32 ret = 1;
+  ErrCode errCode = 1;
   ChatConvInfo convInfo = 2;
 }
 
 
-// Post
+// Post 接口参数
 message PostMetadata {
   uint64 postId = 1;
   string uid = 2;
@@ -171,90 +196,98 @@ message PostComment {
 }
 
 message PostPutPostReq {
+  string sessId = 1;
   uint64 tsMs = 2;
   bytes fileBuf = 3;
   string des = 4;
 }
 message PostPutPostRes {
-  int32 ret = 1;
+  ErrCode errCode = 1;
 }
 
 message PostGetVideoHlsReq {
-  uint64 postId = 1;
-  string hlsFileName = 2;
+  string sessId = 1;
+  uint64 postId = 2;
+  string hlsFileName = 3;
 }
 message PostGetVideoHlsRes {
-  int32 ret = 1;
+  ErrCode errCode = 1;
   repeated string hlsUrls = 2;
 }
 
 message PostGetPostListReq {
-  string uid = 1;
+  string sessId = 1;
 }
 message PostGetPostListRes {
-  int32 ret = 1;
+  ErrCode errCode = 1;
   repeated PostMetadata posts = 2;
 }
 
 message PostGetPostMetadataReq {
-  uint64 postId = 1;
+  string sessId = 1;
+  uint64 postId = 2;
 }
 message PostGetPostMetadataRes {
-  int32 ret = 1;
+  ErrCode errCode = 1;
   PostMetadata metadata = 2;
 }
 
 message PostGetExplorerVideoListReq {
+  string sessId = 1;
 }
 message PostGetExplorerVideoListRes {
-  int32 ret = 1;
+  ErrCode errCode = 1;
   repeated PostMetadata posts = 2;
 }
 
 message PostGetLikesReq {
-  uint64 postId = 1;
+  string sessId = 1;
+  uint64 postId = 2;
 }
 message PostGetLikesRes {
-  int32 ret = 1;
+  ErrCode errCode = 1;
   repeated string uids = 2;
 }
 
 message PostDoLikeReq {
-  uint64 postId = 1;
-  string uid = 2;
+  string sessId = 1;
+  uint64 postId = 2;
 }
 message PostDoLikeRes {
-  int32 ret = 1;
+  ErrCode errCode = 1;
 }
 
 message PostUndoLikeReq {
-  uint64 postId = 1;
-  string uid = 2;
+  string sessId = 1;
+  uint64 postId = 2;
 }
 message PostUndoLikeRes {
-  int32 ret = 1;
+  ErrCode errCode = 1;
 }
 
 message PostGetCommentsReq {
-  uint64 postId = 1;
+  string sessId = 1;
+  uint64 postId = 2;
 }
 message PostGetCommentsRes {
-  int32 ret = 1;
+  ErrCode errCode = 1;
   repeated PostComment comments = 2;
 }
 
 message PostAddCommentReq {
-  uint64 postId = 1;
-  PostComment comment = 2;
+  string sessId = 1;
+  uint64 postId = 2;
+  PostComment comment = 3;
 }
 message PostAddCommentRes {
-  int32 ret = 1;
+  ErrCode errCode = 1;
 }
 
 message PostDelCommentReq {
-  uint64 postId = 1;
-  uint64 commentId = 2;
+  string sessId = 1;
+  uint64 postId = 2;
+  uint64 commentId = 3;
 }
 message PostDelCommentRes {
-  int32 ret = 1;
+  ErrCode errCode = 1;
 }

@@ -12,13 +12,13 @@ import "errors"
 type ChatMsg struct {
 	SenderUid string
 	SentTsMs uint64
-	MsgType uint16
+	MsgType uint32
 	MsgContent string
 }
 
 type ChatMsgOfConv struct {
 	ConvId uint64
-	msg    ChatMsg
+	Msg    ChatMsg
 }
 
 type ChatConvInfo struct {
@@ -44,22 +44,22 @@ type GetChatConvIdParam struct {
 }
 
 
-type Chat struct {
+type ChatT struct {
 
 }
 
-func (p *Chat) GetChatMsg() (msgs*ChatMsgOfConv, err error) {
+func (p *ChatT) GetChatMsg(uid string) (msgs *ChatMsgOfConv, err error) {
 	return nil, errors.New("method not implemented")
 }
 
-func (p *Chat) GetChatMsgHistWith() (msgs*ChatMsg, err error) {
+func (p *ChatT) GetChatMsgHistWith(convId uint64) (msgs *ChatMsg, err error) {
 	return nil, errors.New("method not implemented")
 }
 
-func (p *Chat) SendChatMsgTo(msg*ChatMsg) (err error) {
+func (p *ChatT) SendChatMsgTo(msg *ChatMsg) (err error) {
 	return errors.New("method not implemented")
 }
 
-func (p *Chat) GetChatConvId(param*GetChatConvIdParam) (ConvId uint64, err error) {
+func (p *ChatT) GetChatConvId(param *GetChatConvIdParam) (ConvId uint64, err error) {
 	return 0, errors.New("method not implemented")
 }

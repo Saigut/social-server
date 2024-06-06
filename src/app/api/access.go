@@ -1,4 +1,4 @@
-package access
+package api
 
 // http server
 // authentication using http, if passed, upgrade to websocket

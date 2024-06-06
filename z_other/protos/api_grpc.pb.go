@@ -23,11 +23,11 @@ const _ = grpc.SupportPackageIsVersion7
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type GrpcApiClient interface {
 	// 会话
-	SessRegister(ctx context.Context, in *SessRegisterReq, opts ...grpc.CallOption) (*SessRegisterRes, error)
-	SessUnregister(ctx context.Context, in *SessUnregisterReq, opts ...grpc.CallOption) (*SessUnregisterRes, error)
 	SessUserLogin(ctx context.Context, in *SessUserLoginReq, opts ...grpc.CallOption) (*SessUserLoginRes, error)
 	SessUserLogout(ctx context.Context, in *SessUserLogoutReq, opts ...grpc.CallOption) (*SessUserLogoutRes, error)
 	// 用户管理
+	UmRegister(ctx context.Context, in *UmRegisterReq, opts ...grpc.CallOption) (*UmRegisterRes, error)
+	UmUnregister(ctx context.Context, in *UmUnregisterReq, opts ...grpc.CallOption) (*UmUnregisterRes, error)
 	UmAddFriends(ctx context.Context, in *UmAddFriendsReq, opts ...grpc.CallOption) (*UmAddFriendsRes, error)
 	UmDelFriends(ctx context.Context, in *UmDelFriendsReq, opts ...grpc.CallOption) (*UmDelFriendsRes, error)
 	UmListFriends(ctx context.Context, in *UmListFriendsReq, opts ...grpc.CallOption) (*UmListFriendsRes, error)
@@ -58,24 +58,6 @@ func NewGrpcApiClient(cc grpc.ClientConnInterface) GrpcApiClient {
 	return &grpcApiClient{cc}
 }
 
-func (c *grpcApiClient) SessRegister(ctx context.Context, in *SessRegisterReq, opts ...grpc.CallOption) (*SessRegisterRes, error) {
-	out := new(SessRegisterRes)
-	err := c.cc.Invoke(ctx, "/gen_grpc.GrpcApi/SessRegister", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *grpcApiClient) SessUnregister(ctx context.Context, in *SessUnregisterReq, opts ...grpc.CallOption) (*SessUnregisterRes, error) {
-	out := new(SessUnregisterRes)
-	err := c.cc.Invoke(ctx, "/gen_grpc.GrpcApi/SessUnregister", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *grpcApiClient) SessUserLogin(ctx context.Context, in *SessUserLoginReq, opts ...grpc.CallOption) (*SessUserLoginRes, error) {
 	out := new(SessUserLoginRes)
 	err := c.cc.Invoke(ctx, "/gen_grpc.GrpcApi/SessUserLogin", in, out, opts...)
@@ -88,6 +70,24 @@ func (c *grpcApiClient) SessUserLogin(ctx context.Context, in *SessUserLoginReq,
 func (c *grpcApiClient) SessUserLogout(ctx context.Context, in *SessUserLogoutReq, opts ...grpc.CallOption) (*SessUserLogoutRes, error) {
 	out := new(SessUserLogoutRes)
 	err := c.cc.Invoke(ctx, "/gen_grpc.GrpcApi/SessUserLogout", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *grpcApiClient) UmRegister(ctx context.Context, in *UmRegisterReq, opts ...grpc.CallOption) (*UmRegisterRes, error) {
+	out := new(UmRegisterRes)
+	err := c.cc.Invoke(ctx, "/gen_grpc.GrpcApi/UmRegister", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *grpcApiClient) UmUnregister(ctx context.Context, in *UmUnregisterReq, opts ...grpc.CallOption) (*UmUnregisterRes, error) {
+	out := new(UmUnregisterRes)
+	err := c.cc.Invoke(ctx, "/gen_grpc.GrpcApi/UmUnregister", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -261,11 +261,11 @@ func (c *grpcApiClient) PostDelComment(ctx context.Context, in *PostDelCommentRe
 // for forward compatibility
 type GrpcApiServer interface {
 	// 会话
-	SessRegister(context.Context, *SessRegisterReq) (*SessRegisterRes, error)
-	SessUnregister(context.Context, *SessUnregisterReq) (*SessUnregisterRes, error)
 	SessUserLogin(context.Context, *SessUserLoginReq) (*SessUserLoginRes, error)
 	SessUserLogout(context.Context, *SessUserLogoutReq) (*SessUserLogoutRes, error)
 	// 用户管理
+	UmRegister(context.Context, *UmRegisterReq) (*UmRegisterRes, error)
+	UmUnregister(context.Context, *UmUnregisterReq) (*UmUnregisterRes, error)
 	UmAddFriends(context.Context, *UmAddFriendsReq) (*UmAddFriendsRes, error)
 	UmDelFriends(context.Context, *UmDelFriendsReq) (*UmDelFriendsRes, error)
 	UmListFriends(context.Context, *UmListFriendsReq) (*UmListFriendsRes, error)
@@ -293,17 +293,17 @@ type GrpcApiServer interface {
 type UnimplementedGrpcApiServer struct {
 }
 
-func (UnimplementedGrpcApiServer) SessRegister(context.Context, *SessRegisterReq) (*SessRegisterRes, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SessRegister not implemented")
-}
-func (UnimplementedGrpcApiServer) SessUnregister(context.Context, *SessUnregisterReq) (*SessUnregisterRes, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SessUnregister not implemented")
-}
 func (UnimplementedGrpcApiServer) SessUserLogin(context.Context, *SessUserLoginReq) (*SessUserLoginRes, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SessUserLogin not implemented")
 }
 func (UnimplementedGrpcApiServer) SessUserLogout(context.Context, *SessUserLogoutReq) (*SessUserLogoutRes, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SessUserLogout not implemented")
+}
+func (UnimplementedGrpcApiServer) UmRegister(context.Context, *UmRegisterReq) (*UmRegisterRes, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UmRegister not implemented")
+}
+func (UnimplementedGrpcApiServer) UmUnregister(context.Context, *UmUnregisterReq) (*UmUnregisterRes, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UmUnregister not implemented")
 }
 func (UnimplementedGrpcApiServer) UmAddFriends(context.Context, *UmAddFriendsReq) (*UmAddFriendsRes, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UmAddFriends not implemented")
@@ -372,42 +372,6 @@ func RegisterGrpcApiServer(s grpc.ServiceRegistrar, srv GrpcApiServer) {
 	s.RegisterService(&GrpcApi_ServiceDesc, srv)
 }
 
-func _GrpcApi_SessRegister_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(SessRegisterReq)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(GrpcApiServer).SessRegister(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/gen_grpc.GrpcApi/SessRegister",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(GrpcApiServer).SessRegister(ctx, req.(*SessRegisterReq))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _GrpcApi_SessUnregister_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(SessUnregisterReq)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(GrpcApiServer).SessUnregister(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/gen_grpc.GrpcApi/SessUnregister",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(GrpcApiServer).SessUnregister(ctx, req.(*SessUnregisterReq))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _GrpcApi_SessUserLogin_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(SessUserLoginReq)
 	if err := dec(in); err != nil {
@@ -440,6 +404,42 @@ func _GrpcApi_SessUserLogout_Handler(srv interface{}, ctx context.Context, dec f
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(GrpcApiServer).SessUserLogout(ctx, req.(*SessUserLogoutReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GrpcApi_UmRegister_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UmRegisterReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GrpcApiServer).UmRegister(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/gen_grpc.GrpcApi/UmRegister",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GrpcApiServer).UmRegister(ctx, req.(*UmRegisterReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GrpcApi_UmUnregister_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UmUnregisterReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GrpcApiServer).UmUnregister(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/gen_grpc.GrpcApi/UmUnregister",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GrpcApiServer).UmUnregister(ctx, req.(*UmUnregisterReq))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -776,20 +776,20 @@ var GrpcApi_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*GrpcApiServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "SessRegister",
-			Handler:    _GrpcApi_SessRegister_Handler,
-		},
-		{
-			MethodName: "SessUnregister",
-			Handler:    _GrpcApi_SessUnregister_Handler,
-		},
-		{
 			MethodName: "SessUserLogin",
 			Handler:    _GrpcApi_SessUserLogin_Handler,
 		},
 		{
 			MethodName: "SessUserLogout",
 			Handler:    _GrpcApi_SessUserLogout_Handler,
+		},
+		{
+			MethodName: "UmRegister",
+			Handler:    _GrpcApi_UmRegister_Handler,
+		},
+		{
+			MethodName: "UmUnregister",
+			Handler:    _GrpcApi_UmUnregister_Handler,
 		},
 		{
 			MethodName: "UmAddFriends",

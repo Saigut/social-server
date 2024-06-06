@@ -20,7 +20,7 @@ func (p *Access) ProcessWebsocket() {
 
 }
 
-func (p *Access) SessUserLogin(param*SessUserLoginParam) (err error) {
+func (p *Access) SessUserLogin(param *SessUserLoginParam) (err error) {
 	return errors.New("method not implemented")
 }
 
@@ -35,7 +35,6 @@ func (p *Access) GetUserSessList(param *GetUserSessListParam) (sessList []SessIn
 func (p *Access) FindUserSess(param *SessUserLogoutParam) (sess *SessInfo, err error) {
 	return nil, errors.New("method not implemented")
 }
-
 
 var upgrader = websocket.Upgrader{
 	// 允许所有CORS请求
@@ -136,7 +135,7 @@ func main_old() {
 	log.Println("Starting server on: 10080")
 	err := http.ListenAndServe(":10080", nil)
 	if err != nil {
-		log.Fatal("ListenAndServe error:", err)
+		Log.Error("ListenAndServe error:", err)
 	}
 
 	// 创建一个 HTTP 服务器，使用 h2c 来支持非 TLS 的 HTTP/2
@@ -151,16 +150,14 @@ func main_old() {
 	}
 }
 
-
 type WebSocketConn struct {
-	Conn    chan *websocket.Conn
+	Conn     chan *websocket.Conn
 	IsAuthed bool
 }
 
 type Api struct {
-	UserMgmt user_mgmt.UsermgmtT
+	UserMgmt user_mgmt.UserMgmtT
 }
-
 
 func (p *Api) startRpcServer(connChan chan *WebSocketConn) {
 	for {
@@ -168,7 +165,6 @@ func (p *Api) startRpcServer(connChan chan *WebSocketConn) {
 		go p.processWsConn(conn)
 	}
 }
-
 
 type SociMsgJsonrpc struct {
 	JSONRPC string          `json:"jsonrpc"`
@@ -221,7 +217,6 @@ func (p *Api) processWsConn(conn *WebSocketConn) {
 			} else {
 				p.processUnauthJsonMsg(message[8:])
 			}
-
 
 		} else {
 			log.Println("Unsupported message type " + fmt.Sprintf("%d", msgType))
@@ -279,7 +274,7 @@ func (p *Api) processJsonMsgs(jsonStr *[]byte, sendChan chan *string, idMap *map
 func (p *Api) processJsonMsg(idCtx JsonMsgCtx) (err error) {
 
 	for {
-		recvMsg := <- idCtx.recvChan
+		recvMsg := <-idCtx.recvChan
 
 		switch recvMsg.Method {
 		case "logout":
@@ -316,7 +311,7 @@ func (p *Api) processJsonMsg(idCtx JsonMsgCtx) (err error) {
 			return p.processPostDelComment(recvMsg.Params, idCtx)
 		default:
 			errStr := "Unknown method: " + recvMsg.Method
-			fmt.Println(errStr)
+			Log.Info(errStr)
 			return errors.New(errStr)
 		}
 	}

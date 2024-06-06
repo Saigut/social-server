@@ -11,11 +11,13 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
-	"log"
 	"math/rand"
 	"net/http"
-	. "social_server/src/gen/grpc"
+	. "social_server/src/app/service/controller"
+	"social_server/src/app/service/sess_mgmt"
 	. "social_server/src/app/service/user_mgmt"
+	. "social_server/src/gen/grpc"
+	. "social_server/src/utils/log"
 	"strings"
 	"time"
 )
@@ -63,13 +65,16 @@ type sessCtxT struct {
 }
 
 type ModApiT struct {
+	sessMap map[string]sessCtxT
+
+	Usermgmt *UserMgmtT
+	Controller *ControllerT
+
 	grpcApiServer *grpcApiServerT
 }
 
 type grpcApiServerT struct {
 	ModApi *ModApiT
-	sessMap map[string]sessCtxT
-	Usermgmt *UsermgmtT
 	UnimplementedGrpcApiServer
 }
 
@@ -81,10 +86,10 @@ func (p *grpcApiServerT) generateToken(uid string) (token string, err error) {
 	hash := md5.Sum([]byte(originalStr))
 	token = hex.EncodeToString(hash[:])
 
-	_, isExisted := p.sessMap[token]
+	_, isExisted := p.ModApi.sessMap[token]
 	if isExisted {
 		errStr := "token existed."
-		log.Fatal(errStr)
+		Log.Error(errStr)
 		return "", status.Errorf(codes.Internal, errStr)
 	}
 
@@ -92,46 +97,39 @@ func (p *grpcApiServerT) generateToken(uid string) (token string, err error) {
 }
 
 func (p *grpcApiServerT) SessMapInsert(sessToken string, sessCtx sessCtxT) (error) {
-	ctx, isExisted := p.sessMap[sessToken]
+	_, isExisted := p.ModApi.sessMap[sessToken]
 	if isExisted {
-		ctx = sessCtx
+		p.ModApi.sessMap[sessToken] = sessCtx
 		return nil
 	}
-	p.sessMap[sessToken] = sessCtx
+	p.ModApi.sessMap[sessToken] = sessCtx
 	return nil
 }
 
 func (p *grpcApiServerT) SessMapDel(sessToken string) (error) {
-	delete(p.sessMap, sessToken)
+	delete(p.ModApi.sessMap, sessToken)
 	return nil
 }
 
 func (p *grpcApiServerT) SessMapGet(sessToken string) (sessCtxT, error) {
-	ctx, isExisted := p.sessMap[sessToken]
+	ctx, isExisted := p.ModApi.sessMap[sessToken]
 	if !isExisted {
 		return sessCtxT{}, status.Errorf(codes.Unimplemented, "method SessRegister not found")
 	}
 	return ctx, nil
 }
 
-func (p *grpcApiServerT) SessRegister(ctx context.Context, req *SessRegisterReq) (*SessRegisterRes, error) {
-	// 1. 获取用 uid
-	return nil, status.Errorf(codes.Unimplemented, "method SessRegister not implemented")
-}
-func (p *grpcApiServerT) SessUnregister(ctx context.Context, req *SessUnregisterReq) (*SessUnregisterRes, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SessUnregister not implemented")
-}
-func (p *grpcApiServerT) SessUserLogin(ctx context.Context, req *SessUserLoginReq) (*SessUserLoginRes, err error) {
+func (p *grpcApiServerT) SessUserLogin(ctx context.Context, req *SessUserLoginReq) (*SessUserLoginRes, error) {
 	var res SessUserLoginRes
 
 	// 1. uid 和 passphase
 	var loginParam UmLoginParam
-	loginParam.Uid = req.Userid
-	loginParam.Passwd = req.Passwd
+	loginParam.Uid = req.GetUserid()
+	loginParam.Passwd = req.GetPassphase()
 
 	// 2. 检查 uid 和 passphase
 	//		error: 返回失败信息
-	err = p.Usermgmt.Login(&loginParam)
+	err := p.ModApi.Usermgmt.Login(&loginParam)
 	if err != nil {
 		res.Ret = -1
 		return &res, nil
@@ -161,61 +159,160 @@ func (p *grpcApiServerT) SessUserLogin(ctx context.Context, req *SessUserLoginRe
 }
 
 func (p *grpcApiServerT) SessUserLogout(ctx context.Context, req *SessUserLogoutReq) (*SessUserLogoutRes, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SessUserLogout not implemented")
+	sessId, err := p.getSessId(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return p.ModApi.Controller.SessUserLogout(sessId, req)
+}
+
+func (p *grpcApiServerT) UmRegister(ctx context.Context, req *UmRegisterReq) (*UmRegisterRes, error) {
+	return p.ModApi.Controller.UmRegister(req)
+}
+func (p *grpcApiServerT) UmUnregister(ctx context.Context, req *UmUnregisterReq) (*UmUnregisterRes, error) {
+	sessId, err := p.getSessId(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return p.ModApi.Controller.UmUnregister(sessId, req)
 }
 func (p *grpcApiServerT) UmAddFriends(ctx context.Context, req *UmAddFriendsReq) (*UmAddFriendsRes, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method UmAddFriends not implemented")
+	sessId, err := p.getSessId(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return p.ModApi.Controller.UmAddFriends(sessId, req)
 }
 func (p *grpcApiServerT) UmDelFriends(ctx context.Context, req *UmDelFriendsReq) (*UmDelFriendsRes, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method UmDelFriends not implemented")
+	sessId, err := p.getSessId(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return p.ModApi.Controller.UmDelFriends(sessId, req)
 }
 func (p *grpcApiServerT) UmListFriends(ctx context.Context, req *UmListFriendsReq) (*UmListFriendsRes, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method UmListFriends not implemented")
+	sessId, err := p.getSessId(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return p.ModApi.Controller.UmListFriends(sessId, req)
 }
 func (p *grpcApiServerT) ChatGetChatMsg(ctx context.Context, req *ChatGetChatMsgReq) (*ChatGetChatMsgRes, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ChatGetChatMsg not implemented")
+	sessId, err := p.getSessId(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return p.ModApi.Controller.ChatGetChatMsg(sessId, req)
 }
 func (p *grpcApiServerT) ChatGetChatMsgHistWith(ctx context.Context, req *ChatGetChatMsgHistWithReq) (*ChatGetChatMsgHistWithRes, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ChatGetChatMsgHistWith not implemented")
+	sessId, err := p.getSessId(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return p.ModApi.Controller.ChatGetChatMsgHistWith(sessId, req)
 }
 func (p *grpcApiServerT) ChatSendChatMsgTo(ctx context.Context, req *ChatSendChatMsgToReq) (*ChatSendChatMsgToRes, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ChatSendChatMsgTo not implemented")
+	sessId, err := p.getSessId(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return p.ModApi.Controller.ChatSendChatMsgTo(sessId, req)
 }
 func (p *grpcApiServerT) ChatGetChatConvId(ctx context.Context, req *ChatGetChatConvIdReq) (*ChatGetChatConvIdRes, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ChatGetChatConvId not implemented")
+	sessId, err := p.getSessId(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return p.ModApi.Controller.ChatGetChatConvId(sessId, req)
 }
 func (p *grpcApiServerT) PostPutPost(ctx context.Context, req *PostPutPostReq) (*PostPutPostRes, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method PostPutPost not implemented")
+	sessId, err := p.getSessId(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return p.ModApi.Controller.PostPutPost(sessId, req)
 }
 func (p *grpcApiServerT) PostGetVideoHls(ctx context.Context, req *PostGetVideoHlsReq) (*PostGetVideoHlsRes, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method PostGetVideoHls not implemented")
+	sessId, err := p.getSessId(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return p.ModApi.Controller.PostGetVideoHls(sessId, req)
 }
 func (p *grpcApiServerT) PostGetPostList(ctx context.Context, req *PostGetPostListReq) (*PostGetPostListRes, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method PostGetPostList not implemented")
+	sessId, err := p.getSessId(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return p.ModApi.Controller.PostGetPostList(sessId, req)
 }
 func (p *grpcApiServerT) PostGetPostMetadata(ctx context.Context, req *PostGetPostMetadataReq) (*PostGetPostMetadataRes, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method PostGetPostMetadata not implemented")
+	sessId, err := p.getSessId(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return p.ModApi.Controller.PostGetPostMetadata(sessId, req)
 }
 func (p *grpcApiServerT) PostGetExplorerVideoList(ctx context.Context, req *PostGetExplorerVideoListReq) (*PostGetExplorerVideoListRes, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method PostGetExplorerVideoList not implemented")
+	sessId, err := p.getSessId(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return p.ModApi.Controller.PostGetExplorerVideoList(sessId, req)
 }
 func (p *grpcApiServerT) PostGetLikes(ctx context.Context, req *PostGetLikesReq) (*PostGetLikesRes, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method PostGetLikes not implemented")
+	sessId, err := p.getSessId(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return p.ModApi.Controller.PostGetLikes(sessId, req)
 }
 func (p *grpcApiServerT) PostDoLike(ctx context.Context, req *PostDoLikeReq) (*PostDoLikeRes, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method PostDoLike not implemented")
+	sessId, err := p.getSessId(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return p.ModApi.Controller.PostDoLike(sessId, req)
 }
 func (p *grpcApiServerT) PostUndoLike(ctx context.Context, req *PostUndoLikeReq) (*PostUndoLikeRes, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method PostUndoLike not implemented")
+	sessId, err := p.getSessId(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return p.ModApi.Controller.PostUndoLike(sessId, req)
 }
 func (p *grpcApiServerT) PostGetComments(ctx context.Context, req *PostGetCommentsReq) (*PostGetCommentsRes, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method PostGetComments not implemented")
+	sessId, err := p.getSessId(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return p.ModApi.Controller.PostGetComments(sessId, req)
 }
 func (p *grpcApiServerT) PostAddComment(ctx context.Context, req *PostAddCommentReq) (*PostAddCommentRes, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method PostAddComment not implemented")
+	sessId, err := p.getSessId(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return p.ModApi.Controller.PostAddComment(sessId, req)
 }
 func (p *grpcApiServerT) PostDelComment(ctx context.Context, req *PostDelCommentReq) (*PostDelCommentRes, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method PostDelComment not implemented")
+	sessId, err := p.getSessId(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return p.ModApi.Controller.PostDelComment(sessId, req)
+}
+
+func (p *grpcApiServerT) getSessId(ctx context.Context) (sess_mgmt.SessIdT, error) {
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		return "", status.Errorf(codes.Unauthenticated, "missing session info")
+	}
+	sessId, ok := md["session-id"]
+	if !ok || len(sessId) == 0 {
+		return "", status.Errorf(codes.Unauthenticated, "missing session id")
+	}
+	return sess_mgmt.SessIdT(sessId[0]), nil
 }
 
 // validateSessionToken 验证会话标识的有效性
@@ -230,30 +327,10 @@ func (p *ModApiT) validateSessionToken(token string) bool {
 	}
 }
 
-// sessionAuthInterceptor 是一个服务端拦截器，用于验证会话标识
-func (p *ModApiT) sessionAuthInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
-	// 允许 Login 方法不经过会话验证
-	if info.FullMethod != "/gen_grpc.GrpcApi/SessRegister" && info.FullMethod != "/gen_grpc.GrpcApi/SessUserLogin" {
-		md, ok := metadata.FromIncomingContext(ctx)
-		if ok {
-			// 提取会话标识
-			values := md["session-token"]
-			if len(values) == 0 || !p.validateSessionToken(values[0]) {
-				// 会话验证失败
-				return nil, status.Errorf(codes.Unauthenticated, "invalid session token")
-			}
-		} else {
-			return nil, status.Errorf(codes.Unauthenticated, "missing session token")
-		}
-	}
-	// 继续处理请求
-	return handler(ctx, req)
-}
-
 func (p *ModApiT) StartRpcServer() (error) {
 	// 准备 grpc server
 	//var opts []grpc.ServerOption
-	grpcServer := grpc.NewServer(grpc.UnaryInterceptor(p.sessionAuthInterceptor))
+	grpcServer := grpc.NewServer()
 	p.grpcApiServer = new(grpcApiServerT)
 	/// Fixme
 	p.grpcApiServer.ModApi = p
@@ -264,6 +341,8 @@ func (p *ModApiT) StartRpcServer() (error) {
 
 	handler := http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
+			//Log.Info("Debug: HTTP method: %s, URL: %s, Header: %v", r.Method, r.URL, r.Header)
+			Log.Info("Debug: HTTP method: %s, URL: %s", r.Method, r.URL)
 			if r.ProtoMajor == 2 && strings.Contains(r.Header.Get("Content-Type"), "application/grpc") {
 				grpcServer.ServeHTTP(w, r)
 			} else {
@@ -279,11 +358,10 @@ func (p *ModApiT) StartRpcServer() (error) {
 	}
 
 	// 启动服务器
-	fmt.Println("Serving gRPC and HTTP on port 80")
+	Log.Info("Serving gRPC and HTTP on port 10080")
 	if err := httpServer.ListenAndServe(); err != nil {
 		return fmt.Errorf("failed to serve: %v", err)
 	}
-
 
 	return nil
 }

@@ -13,8 +13,22 @@ import "errors"
 	- list_friends
 */
 
+type UmUserInfoValidateParam struct {
+	Username  string
+	Passphase string
+	Email     string
+}
+
+type UmIsUsernameExistedParam struct {
+	Username string
+}
+
+type UmUserAuthenticateParam struct {
+	Username  string
+	Passphase string
+}
+
 type UmRegisterParam struct {
-	Uid      string `json:"uid"`
 	Username string `json:"username"`
 	Passwd   string `json:"passwd"`
 	Email    string `json:"email"`
@@ -25,7 +39,7 @@ type UmUnregisterParam struct {
 }
 
 type UmLoginParam struct {
-	Uid  string `json:"uid"`
+	Uid    string `json:"uid"`
 	Passwd string `json:"passwd"`
 }
 
@@ -48,33 +62,45 @@ type UmListFriendsParam struct {
 	FriendsUid []string `json:"friends_uid"`
 }
 
-type UsermgmtT struct {
+type UserMgmtT struct {
 }
 
-func (p *UsermgmtT) Register(param*UmRegisterParam) (err error) {
+func (p *UserMgmtT) UserInfoValidate(param *UmUserInfoValidateParam) (err error) {
 	return errors.New("method not implemented")
 }
 
-func (p *UsermgmtT) Unregister(param *UmUnregisterParam) (err error) {
+func (p *UserMgmtT) IsUsernameExisted(param *UmIsUsernameExistedParam) (err error) {
 	return errors.New("method not implemented")
 }
 
-func (p *UsermgmtT) Login(param *UmLoginParam) (err error) {
+func (p *UserMgmtT) UserAuthenticate(param *UmUserAuthenticateParam) (err error) {
 	return errors.New("method not implemented")
 }
 
-func (p *UsermgmtT) Logout(param *UmLogoutParam) (err error) {
+func (p *UserMgmtT) Register(param *UmRegisterParam) (err error) {
 	return errors.New("method not implemented")
 }
 
-func (p *UsermgmtT) AddFriends(param *UmAddFriendsParam) (err error) {
+func (p *UserMgmtT) Unregister(param *UmUnregisterParam) (err error) {
 	return errors.New("method not implemented")
 }
 
-func (p *UsermgmtT) DelFriends(param *UmDelFriendsParam) (err error) {
+func (p *UserMgmtT) Login(param *UmLoginParam) (err error) {
 	return errors.New("method not implemented")
 }
 
-func (p *UsermgmtT) ListFriends(param *UmListFriendsParam) (friendsUid []string, err error) {
+func (p *UserMgmtT) Logout(param *UmLogoutParam) (err error) {
+	return errors.New("method not implemented")
+}
+
+func (p *UserMgmtT) AddFriends(param *UmAddFriendsParam) (err error) {
+	return errors.New("method not implemented")
+}
+
+func (p *UserMgmtT) DelFriends(param *UmDelFriendsParam) (err error) {
+	return errors.New("method not implemented")
+}
+
+func (p *UserMgmtT) ListFriends(param *UmListFriendsParam) (friendsUid []string, err error) {
 	return nil, errors.New("method not implemented")
 }

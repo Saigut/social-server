@@ -20,27 +20,27 @@ import "errors"
 */
 
 type PostMetadata struct {
-	PostID uint64
-	Uid string
-	TsMs uint64
-	Des string
+	PostID       uint64
+	Uid          string
+	TsMs         uint64
+	Des          string
 	VideoHlsList []string
 }
 
 type PostComment struct {
-	TsMs uint64
+	TsMs    uint64
 	Content []string
 }
 
 type PutPostParam struct {
-	Uid string
-	TsMs uint64
+	Uid     string
+	TsMs    uint64
 	FileBuf []byte
-	Des string
+	Des     string
 }
 
 type GetVideoHlsParam struct {
-	PostID uint64
+	PostID      uint64
 	HlsFileName string
 }
 
@@ -61,12 +61,12 @@ type GetLikesParam struct {
 
 type DoLikeParam struct {
 	PostID uint64
-	Uid string
+	Uid    string
 }
 
 type UndoLikeParam struct {
 	PostID uint64
-	Uid string
+	Uid    string
 }
 
 type GetCommentsParam struct {
@@ -79,54 +79,53 @@ type AddCommentParam struct {
 }
 
 type DelCommentParam struct {
-	PostID uint64
+	PostID    uint64
 	CommentId uint64
 }
 
-type Post struct {
-	
+type PostT struct {
 }
 
-func (p *Post) PutPost(param *PutPostParam) (err error) {
+func (p *PostT) PutPost(param *PutPostParam) (err error) {
 	return errors.New("method not implemented")
 }
 
-func (p *Post) GetVideoHls(param *GetVideoHlsParam) (err error) {
+func (p *PostT) GetVideoHls(param *GetVideoHlsParam) (err error) {
 	return errors.New("method not implemented")
 }
 
-func (p *Post) GetPostList(param *GetPostListParam) (err error) {
+func (p *PostT) GetPostList(param *GetPostListParam) (err error) {
 	return errors.New("method not implemented")
 }
 
-func (p *Post) GetPostMetadata(param *GetPostMetadataParam) (err error) {
+func (p *PostT) GetPostMetadata(param *GetPostMetadataParam) (err error) {
 	return errors.New("method not implemented")
 }
 
-func (p *Post) GetExplorerPostList(param *GetExplorerVideoListParam) (err error) {
+func (p *PostT) GetExplorerPostList(param *GetExplorerVideoListParam) (err error) {
 	return errors.New("method not implemented")
 }
 
-func (p *Post) GetLikes(param *GetLikesParam) (err error) {
+func (p *PostT) GetLikes(param *GetLikesParam) (err error) {
 	return errors.New("method not implemented")
 }
 
-func (p *Post) DoLike(param *DoLikeParam) (err error) {
+func (p *PostT) DoLike(param *DoLikeParam) (err error) {
 	return errors.New("method not implemented")
 }
 
-func (p *Post) UndoLike(param *UndoLikeParam) (err error) {
+func (p *PostT) UndoLike(param *UndoLikeParam) (err error) {
 	return errors.New("method not implemented")
 }
 
-func (p *Post) GetComments(param *GetCommentsParam) (err error) {
+func (p *PostT) GetComments(param *GetCommentsParam) (err error) {
 	return errors.New("method not implemented")
 }
 
-func (p *Post) AddComment(param *AddCommentParam) (err error) {
+func (p *PostT) AddComment(param *AddCommentParam) (err error) {
 	return errors.New("method not implemented")
 }
 
-func (p *Post) DelComment(param *DelCommentParam) (err error) {
+func (p *PostT) DelComment(param *DelCommentParam) (err error) {
 	return errors.New("method not implemented")
 }
