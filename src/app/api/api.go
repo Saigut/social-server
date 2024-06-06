@@ -43,21 +43,6 @@ api:
 	- get_chat_msg
 	- get_chat_msg_hist_with
 	- send_chat_msg_to
-
-* post
-	stream
-	- put_post
-	- get_video_hls
-	msg
-	- get_post_list
-	- get_post_metadata
-	- get_explorer_post_list
-	- get_likes
-	- do_like
-	- undo_like
-	- get_comments
-	- add_comment
-	- del_comment
 */
 
 type sessCtxT struct {
@@ -224,83 +209,6 @@ func (p *grpcApiServerT) ChatGetChatConvId(ctx context.Context, req *ChatGetChat
 		return nil, err
 	}
 	return p.ModApi.Controller.ChatGetChatConvId(sessId, req)
-}
-func (p *grpcApiServerT) PostPutPost(ctx context.Context, req *PostPutPostReq) (*PostPutPostRes, error) {
-	sessId, err := p.getSessId(ctx)
-	if err != nil {
-		return nil, err
-	}
-	return p.ModApi.Controller.PostPutPost(sessId, req)
-}
-func (p *grpcApiServerT) PostGetVideoHls(ctx context.Context, req *PostGetVideoHlsReq) (*PostGetVideoHlsRes, error) {
-	sessId, err := p.getSessId(ctx)
-	if err != nil {
-		return nil, err
-	}
-	return p.ModApi.Controller.PostGetVideoHls(sessId, req)
-}
-func (p *grpcApiServerT) PostGetPostList(ctx context.Context, req *PostGetPostListReq) (*PostGetPostListRes, error) {
-	sessId, err := p.getSessId(ctx)
-	if err != nil {
-		return nil, err
-	}
-	return p.ModApi.Controller.PostGetPostList(sessId, req)
-}
-func (p *grpcApiServerT) PostGetPostMetadata(ctx context.Context, req *PostGetPostMetadataReq) (*PostGetPostMetadataRes, error) {
-	sessId, err := p.getSessId(ctx)
-	if err != nil {
-		return nil, err
-	}
-	return p.ModApi.Controller.PostGetPostMetadata(sessId, req)
-}
-func (p *grpcApiServerT) PostGetExplorerVideoList(ctx context.Context, req *PostGetExplorerVideoListReq) (*PostGetExplorerVideoListRes, error) {
-	sessId, err := p.getSessId(ctx)
-	if err != nil {
-		return nil, err
-	}
-	return p.ModApi.Controller.PostGetExplorerVideoList(sessId, req)
-}
-func (p *grpcApiServerT) PostGetLikes(ctx context.Context, req *PostGetLikesReq) (*PostGetLikesRes, error) {
-	sessId, err := p.getSessId(ctx)
-	if err != nil {
-		return nil, err
-	}
-	return p.ModApi.Controller.PostGetLikes(sessId, req)
-}
-func (p *grpcApiServerT) PostDoLike(ctx context.Context, req *PostDoLikeReq) (*PostDoLikeRes, error) {
-	sessId, err := p.getSessId(ctx)
-	if err != nil {
-		return nil, err
-	}
-	return p.ModApi.Controller.PostDoLike(sessId, req)
-}
-func (p *grpcApiServerT) PostUndoLike(ctx context.Context, req *PostUndoLikeReq) (*PostUndoLikeRes, error) {
-	sessId, err := p.getSessId(ctx)
-	if err != nil {
-		return nil, err
-	}
-	return p.ModApi.Controller.PostUndoLike(sessId, req)
-}
-func (p *grpcApiServerT) PostGetComments(ctx context.Context, req *PostGetCommentsReq) (*PostGetCommentsRes, error) {
-	sessId, err := p.getSessId(ctx)
-	if err != nil {
-		return nil, err
-	}
-	return p.ModApi.Controller.PostGetComments(sessId, req)
-}
-func (p *grpcApiServerT) PostAddComment(ctx context.Context, req *PostAddCommentReq) (*PostAddCommentRes, error) {
-	sessId, err := p.getSessId(ctx)
-	if err != nil {
-		return nil, err
-	}
-	return p.ModApi.Controller.PostAddComment(sessId, req)
-}
-func (p *grpcApiServerT) PostDelComment(ctx context.Context, req *PostDelCommentReq) (*PostDelCommentRes, error) {
-	sessId, err := p.getSessId(ctx)
-	if err != nil {
-		return nil, err
-	}
-	return p.ModApi.Controller.PostDelComment(sessId, req)
 }
 
 func (p *grpcApiServerT) getSessId(ctx context.Context) (sess_mgmt.SessIdT, error) {

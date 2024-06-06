@@ -21,20 +21,6 @@ import "errors"
 	- get_chat_msg
 	- get_chat_msg_hist_with
 	- send_chat_msg_to
-
-* video
-	- put_video_file
-	- get_video_hls
-
-	- get_video_list
-	- get_video_metadata
-	- get_explorer_video_list
-	- get_likes
-	- do_like
-	- undo_like
-	- get_comments
-	- add_comment
-	- del_comment
 */
 
 type SessUserLoginParam struct {
