@@ -12,13 +12,13 @@ type SessIdT string
 
 type SessCtxT struct {
 	SessId SessIdT
-	Uid    string
+	Uid    uint64
 }
 
 type SessMgmtT struct {
 }
 
-func (p *SessMgmtT) CreateSess(uid string, timeoutTsS uint64) (sessId *SessIdT, err error) {
+func (p *SessMgmtT) CreateSess(userName string, timeoutTsS uint64) (sessId *SessIdT, err error) {
 	return nil, errors.New("method not implemented")
 }
 

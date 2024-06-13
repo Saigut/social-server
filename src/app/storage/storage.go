@@ -56,7 +56,7 @@ type ChatGetChatMsgParam struct {
 type ChatGetChatMsgHistWithParam struct {
 }
 
-type ChatSendChatMsgToParam struct {
+type ChatSendMsgParam struct {
 }
 
 type VideoPutVideoFileParam struct {
@@ -139,7 +139,7 @@ func (p *Storage) ChatGetChatMsgHistWith(param *ChatGetChatMsgHistWithParam) (er
 	return errors.New("method not implemented")
 }
 
-func (p *Storage) ChatSendChatMsgTo(param *ChatSendChatMsgToParam) (err error) {
+func (p *Storage) ChatSendMsg(param *ChatSendMsgParam) (err error) {
 	return errors.New("method not implemented")
 }
 

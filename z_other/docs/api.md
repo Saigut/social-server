@@ -15,7 +15,6 @@ SessUserLogin
 
 * 返回值
 
-
 ### 用户登出
 * 名称  
 SessUserLogout
@@ -68,7 +67,7 @@ UmListFriends
 
 ### 获取聊天消息
 * 名称  
-ChatGetChatMsg
+ChatGetMsgList
 
 * 参数
 
@@ -76,7 +75,7 @@ ChatGetChatMsg
 
 ### 获取聊天历史
 * 名称  
-ChatGetChatMsgHistWith
+ChatGetBoxMsgHist
 
 * 参数
 
@@ -84,103 +83,24 @@ ChatGetChatMsgHistWith
 
 ### 发送聊天消息
 * 名称  
-ChatSendChatMsgTo
+ChatSendMsg
 
 * 参数
 
 * 返回值
 
-### 获取聊天对话ID
+### 创建群聊
 * 名称  
-ChatGetChatConvId
+ChatCreateGroupConv
 
 * 参数
 
 * 返回值
 
-
-### 发表帖子
+### 获取群聊列表
 * 名称  
-PostPutPost
+ChatGetGroupConvList
 
 * 参数
 
 * 返回值
-
-### 获取帖子视频地址
-* 名称  
-PostGetVideoHls
-
-* 参数
-
-* 返回值
-
-### 获取帖子列表
-* 名称  
-PostGetPostList
-
-* 参数
-
-* 返回值
-
-### 获取帖子元数据
-* 名称  
-PostGetPostMetadata
-
-* 参数
-
-* 返回值
-
-### 获取广场帖子列表
-* 名称  
-PostGetExplorerVideoList
-
-* 参数
-
-* 返回值
-
-### 获取帖子点赞数
-* 名称  
-PostGetLikes
-
-* 参数
-
-* 返回值
-
-### 点赞帖子
-* 名称  
-PostDoLike
-
-* 参数
-
-* 返回值
-
-### 取消点赞帖子
-* 名称  
-PostUndoLike
-
-* 参数
-
-* 返回值
-
-### 获取帖子评论数
-* 名称  
-PostGetComments
-
-* 参数
-
-* 返回值
-
-### 评论帖子
-* 名称  
-PostAddComment
-
-* 参数
-
-
-### 删除帖子评论
-* 名称  
-PostDelComment
-
-* 参数
-

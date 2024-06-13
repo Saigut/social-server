@@ -19,15 +19,16 @@ service GrpcApi {
   // 用户管理
   rpc UmRegister(UmRegisterReq) returns (UmRegisterRes);
   rpc UmUnregister(UmUnregisterReq) returns (UmUnregisterRes);
-  rpc UmAddFriends(UmAddFriendsReq) returns (UmAddFriendsRes);
-  rpc UmDelFriends(UmDelFriendsReq) returns (UmDelFriendsRes);
-  rpc UmListFriends(UmListFriendsReq) returns (UmListFriendsRes);
+  rpc UmAddFriend(UmAddFriendReq) returns (UmAddFriendRes);
+  rpc UmDelFriend(UmDelFriendReq) returns (UmDelFriendRes);
+  rpc UmGetFriendList(UmGetFriendListReq) returns (UmGetFriendListRes);
 
   // 聊天
-  rpc ChatGetChatMsg(ChatGetChatMsgReq) returns (ChatGetChatMsgRes);
-  rpc ChatGetChatMsgHistWith(ChatGetChatMsgHistWithReq) returns (ChatGetChatMsgHistWithRes);
-  rpc ChatSendChatMsgTo(ChatSendChatMsgToReq) returns (ChatSendChatMsgToRes);
-  rpc ChatGetChatConvId(ChatGetChatConvIdReq) returns (ChatGetChatConvIdRes);
+  rpc ChatGetMsgList(ChatGetMsgListReq) returns (ChatGetMsgListRes);
+  rpc ChatGetBoxMsgHist(ChatGetBoxMsgHistReq) returns (ChatGetBoxMsgHistRes);
+  rpc ChatSendMsg(ChatSendMsgReq) returns (ChatSendMsgRes);
+  rpc ChatCreateGroupConv(ChatCreateGroupConvReq) returns (ChatCreateGroupConvRes);
+  rpc ChatGetGroupConvList(ChatGetGroupConvListReq) returns (ChatGetGroupConvListRes);
 }
 
 enum ErrCode {
@@ -41,6 +42,7 @@ enum ErrCode {
   emErrCode_SessNotExisted = 20;
 
   emErrCode_ConvIdNotExisted = 30;
+  emErrCode_UserNotInConv = 31;
 }
 
 // 会话接口参数
@@ -66,7 +68,7 @@ message UmFriendInfo {
   string nickName = 2;
   string remarkName = 3;
   // 添加朋友时不需要 uid
-  string uid = 4;
+  uint64 uid = 4;
 }
 
 message UmRegisterReq {
@@ -85,84 +87,102 @@ message UmUnregisterRes {
   ErrCode errCode = 1;
 }
 
-message UmAddFriendsReq {
+message UmAddFriendReq {
   string sessId = 1;
-  repeated UmFriendInfo friendList = 2;
+  UmFriendInfo friend = 2;
 }
-message UmAddFriendsRes {
+message UmAddFriendRes {
   ErrCode errCode = 1;
 }
 
-message UmDelFriendsReq {
+message UmDelFriendReq {
   string sessId = 1;
-  repeated string friendUidList = 2;
+  uint64 friendUid = 2;
 }
-message UmDelFriendsRes {
+message UmDelFriendRes {
   ErrCode errCode = 1;
 }
 
-message UmListFriendsReq {
+message UmGetFriendListReq {
   string sessId = 1;
 }
-message UmListFriendsRes {
+message UmGetFriendListRes {
   ErrCode errCode = 1;
   repeated UmFriendInfo friendList = 2;
 }
 
 
 // 聊天接口参数
+message ChatPeerId {
+  oneof PeerIdUnion {
+    uint64 peerUid = 1;
+    uint64 groupConvId = 2;
+  }
+}
+
 enum ChatMsgType {
   emChatMsgType_Text = 0;
 }
 
 message ChatMsg {
-  string senderUid = 1;
+  uint64 senderUid = 1;
   uint64 sentTsMs = 2;
   ChatMsgType msgType = 3;
   string msgContent = 4;
 }
 
-message ChatConvMsg {
-  uint32 convId = 1;
+message ChatBoxMsg {
+  ChatPeerId peerId = 1;
+  ChatMsg msg = 2;
+}
+
+message ChatConvMsgList {
+  uint64 convId = 1;
   repeated ChatMsg msgList = 2;
 }
 
 message ChatConvInfo {
-  uint32 convId = 2;
-  repeated string uidList = 1;
+  uint64 convId = 1;
+  repeated uint64 uidList = 2;
 }
 
-message ChatGetChatMsgReq {
+message ChatGetMsgListReq {
   string sessId = 1;
 }
-message ChatGetChatMsgRes {
+message ChatGetMsgListRes {
   ErrCode errCode = 1;
-  repeated ChatConvMsg msgList = 2;
+  repeated ChatBoxMsg msgList = 2;
 }
 
-message ChatGetChatMsgHistWithReq {
+message ChatGetBoxMsgHistReq {
   string sessId = 1;
-  uint64 convId = 2;
+  ChatPeerId peerId = 2;
 }
-message ChatGetChatMsgHistWithRes {
+message ChatGetBoxMsgHistRes {
   ErrCode errCode = 1;
   repeated ChatMsg msgList = 2;
 }
 
-message ChatSendChatMsgToReq {
+message ChatSendMsgReq {
   string sessId = 1;
-  ChatConvMsg msg = 2;
+  ChatBoxMsg boxMsg = 2;
 }
-message ChatSendChatMsgToRes {
+message ChatSendMsgRes {
   ErrCode errCode = 1;
 }
 
-message ChatGetChatConvIdReq {
+message ChatCreateGroupConvReq {
   string sessId = 1;
-  string uid1 = 2;
-  string uid2 = 3;
 }
-message ChatGetChatConvIdRes {
+message ChatCreateGroupConvRes {
   ErrCode errCode = 1;
-  ChatConvInfo convInfo = 2;
+  uint64 convId = 2;
+}
+
+message ChatGetGroupConvListReq {
+  string sessId = 1;
+}
+message ChatGetGroupConvListRes {
+  ErrCode errCode = 1;
+  repeated uint64 convIdList = 2;
 }

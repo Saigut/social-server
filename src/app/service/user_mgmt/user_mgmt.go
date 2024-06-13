@@ -35,30 +35,30 @@ type UmRegisterParam struct {
 }
 
 type UmUnregisterParam struct {
-	Uid string `json:"uid"`
+	Uid uint64 `json:"uid"`
 }
 
 type UmLoginParam struct {
-	Uid    string `json:"uid"`
+	Uid    uint64 `json:"uid"`
 	Passwd string `json:"passwd"`
 }
 
 type UmLogoutParam struct {
-	Uid string `json:"uid"`
+	Uid uint64 `json:"uid"`
 }
 
 type UmAddFriendsParam struct {
-	Uid        string   `json:"uid"`
-	FriendsUid []string `json:"friends_uid"`
+	Uid        uint64
+	FriendUid  uint64
 }
 
 type UmDelFriendsParam struct {
-	Uid        string   `json:"uid"`
-	FriendsUid []string `json:"friends_uid"`
+	Uid        uint64
+	FriendUid  uint64
 }
 
 type UmListFriendsParam struct {
-	Uid        string   `json:"uid"`
+	Uid        uint64   `json:"uid"`
 	FriendsUid []string `json:"friends_uid"`
 }
 
@@ -69,7 +69,7 @@ func (p *UserMgmtT) UserInfoValidate(param *UmUserInfoValidateParam) (err error)
 	return errors.New("method not implemented")
 }
 
-func (p *UserMgmtT) IsUsernameExisted(param *UmIsUsernameExistedParam) (err error) {
+func (p *UserMgmtT) IsUsernameExisted(userName string) (err error) {
 	return errors.New("method not implemented")
 }
 
@@ -101,6 +101,6 @@ func (p *UserMgmtT) DelFriends(param *UmDelFriendsParam) (err error) {
 	return errors.New("method not implemented")
 }
 
-func (p *UserMgmtT) ListFriends(param *UmListFriendsParam) (friendsUid []string, err error) {
+func (p *UserMgmtT) GetFriendList(uid uint64) (friendsUid []uint64, err error) {
 	return nil, errors.New("method not implemented")
 }

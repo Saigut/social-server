@@ -105,110 +105,42 @@ func (p *grpcApiServerT) SessMapGet(sessToken string) (sessCtxT, error) {
 }
 
 func (p *grpcApiServerT) SessUserLogin(ctx context.Context, req *SessUserLoginReq) (*SessUserLoginRes, error) {
-	var res SessUserLoginRes
-
-	// 1. uid 和 passphase
-	var loginParam UmLoginParam
-	loginParam.Uid = req.GetUserid()
-	loginParam.Passwd = req.GetPassphase()
-
-	// 2. 检查 uid 和 passphase
-	//		error: 返回失败信息
-	err := p.ModApi.Usermgmt.Login(&loginParam)
-	if err != nil {
-		res.Ret = -1
-		return &res, nil
-	}
-
-	// 3. 创建 sess 信息
-	var token string
-	token, err = p.generateToken(req.Userid)
-	if err != nil {
-		res.Ret = -1
-		return &res, nil
-	}
-
-	// 4. 保存 sess 信息
-	var sessCtx sessCtxT
-	sessCtx.Uid = req.Userid
-	err = p.SessMapInsert(token, sessCtx)
-	if err != nil {
-		res.Ret = -1
-		return &res, nil
-	}
-
-	// 5. 返回包括 sess token 在内的成功信息
-	res.Ret = 0
-	res.SessToken = token
-	return &res, nil
+	return p.ModApi.Controller.SessUserLogin(req)
 }
 
 func (p *grpcApiServerT) SessUserLogout(ctx context.Context, req *SessUserLogoutReq) (*SessUserLogoutRes, error) {
-	sessId, err := p.getSessId(ctx)
-	if err != nil {
-		return nil, err
-	}
-	return p.ModApi.Controller.SessUserLogout(sessId, req)
+	return p.ModApi.Controller.SessUserLogout(req)
 }
 
 func (p *grpcApiServerT) UmRegister(ctx context.Context, req *UmRegisterReq) (*UmRegisterRes, error) {
 	return p.ModApi.Controller.UmRegister(req)
 }
 func (p *grpcApiServerT) UmUnregister(ctx context.Context, req *UmUnregisterReq) (*UmUnregisterRes, error) {
-	sessId, err := p.getSessId(ctx)
-	if err != nil {
-		return nil, err
-	}
-	return p.ModApi.Controller.UmUnregister(sessId, req)
+	return p.ModApi.Controller.UmUnregister(req)
 }
-func (p *grpcApiServerT) UmAddFriends(ctx context.Context, req *UmAddFriendsReq) (*UmAddFriendsRes, error) {
-	sessId, err := p.getSessId(ctx)
-	if err != nil {
-		return nil, err
-	}
-	return p.ModApi.Controller.UmAddFriends(sessId, req)
+func (p *grpcApiServerT) UmAddFriends(ctx context.Context, req *UmAddFriendReq) (*UmAddFriendRes, error) {
+	return p.ModApi.Controller.UmAddFriend(req)
 }
-func (p *grpcApiServerT) UmDelFriends(ctx context.Context, req *UmDelFriendsReq) (*UmDelFriendsRes, error) {
-	sessId, err := p.getSessId(ctx)
-	if err != nil {
-		return nil, err
-	}
-	return p.ModApi.Controller.UmDelFriends(sessId, req)
+func (p *grpcApiServerT) UmDelFriends(ctx context.Context, req *UmDelFriendReq) (*UmDelFriendRes, error) {
+	return p.ModApi.Controller.UmDelFriends(req)
 }
-func (p *grpcApiServerT) UmListFriends(ctx context.Context, req *UmListFriendsReq) (*UmListFriendsRes, error) {
-	sessId, err := p.getSessId(ctx)
-	if err != nil {
-		return nil, err
-	}
-	return p.ModApi.Controller.UmListFriends(sessId, req)
+func (p *grpcApiServerT) UmListFriends(ctx context.Context, req *UmGetFriendListReq) (*UmGetFriendListRes, error) {
+	return p.ModApi.Controller.UmListFriends(req)
 }
-func (p *grpcApiServerT) ChatGetChatMsg(ctx context.Context, req *ChatGetChatMsgReq) (*ChatGetChatMsgRes, error) {
-	sessId, err := p.getSessId(ctx)
-	if err != nil {
-		return nil, err
-	}
-	return p.ModApi.Controller.ChatGetChatMsg(sessId, req)
+func (p *grpcApiServerT) ChatGetChatMsg(ctx context.Context, req *ChatGetMsgListReq) (*ChatGetMsgListRes, error) {
+	return p.ModApi.Controller.ChatGetMsgList(req)
 }
-func (p *grpcApiServerT) ChatGetChatMsgHistWith(ctx context.Context, req *ChatGetChatMsgHistWithReq) (*ChatGetChatMsgHistWithRes, error) {
-	sessId, err := p.getSessId(ctx)
-	if err != nil {
-		return nil, err
-	}
-	return p.ModApi.Controller.ChatGetChatMsgHistWith(sessId, req)
+func (p *grpcApiServerT) ChatGetChatMsgHistWith(ctx context.Context, req *ChatGetBoxMsgHistReq) (*ChatGetBoxMsgHistRes, error) {
+	return p.ModApi.Controller.ChatGetBoxMsgHist(req)
 }
-func (p *grpcApiServerT) ChatSendChatMsgTo(ctx context.Context, req *ChatSendChatMsgToReq) (*ChatSendChatMsgToRes, error) {
-	sessId, err := p.getSessId(ctx)
-	if err != nil {
-		return nil, err
-	}
-	return p.ModApi.Controller.ChatSendChatMsgTo(sessId, req)
+func (p *grpcApiServerT) ChatSendMsg(ctx context.Context, req *ChatSendMsgReq) (*ChatSendMsgRes, error) {
+	return p.ModApi.Controller.ChatSendMsg(req)
 }
-func (p *grpcApiServerT) ChatGetChatConvId(ctx context.Context, req *ChatGetChatConvIdReq) (*ChatGetChatConvIdRes, error) {
-	sessId, err := p.getSessId(ctx)
-	if err != nil {
-		return nil, err
-	}
-	return p.ModApi.Controller.ChatGetChatConvId(sessId, req)
+func (p *grpcApiServerT) ChatCreateGroupConv(ctx context.Context, req *ChatCreateGroupConvReq) (*ChatCreateGroupConvRes, error) {
+	return p.ModApi.Controller.ChatCreateGroupConv(req)
+}
+func (p *grpcApiServerT) ChatGetGroupConvList(ctx context.Context, req *ChatGetGroupConvListReq) (*ChatGetGroupConvListRes, error) {
+	return p.ModApi.Controller.ChatGetGroupConvList(req)
 }
 
 func (p *grpcApiServerT) getSessId(ctx context.Context) (sess_mgmt.SessIdT, error) {
