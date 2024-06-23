@@ -8,7 +8,7 @@ import (
 func main() {
 	SetupLogger()
 
-	var modAPi api.ModApiT
+	modAPi := api.NewModApi()
 	err := modAPi.StartRpcServer()
 	if err != nil {
 		Log.Info("could not login: %v", err)

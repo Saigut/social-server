@@ -1,35 +1,40 @@
 package sess_mgmt
 
-import "errors"
+import (
+    "fmt"
+    "social_server/src/app/common/types"
+    "social_server/src/app/data"
+)
 
-/*
-	1. 创建会话
-	2. 查询会话
-	3. 删除会话
-*/
-
-type SessIdT string
-
-type SessCtxT struct {
-	SessId SessIdT
-	Uid    uint64
+type SessMgmt struct {
+    storage *data.DB
+    cache   *data.Cache
 }
 
-type SessMgmtT struct {
+func NewSessMgmt(storage *data.DB, cache *data.Cache) *SessMgmt {
+    return &SessMgmt{
+        storage: storage,
+        cache:   cache,
+    }
 }
 
-func (p *SessMgmtT) CreateSess(userName string, timeoutTsS uint64) (sessId *SessIdT, err error) {
-	return nil, errors.New("method not implemented")
+func (p *SessMgmt) CreateSess(userName string, timeoutTsS uint64) (sessId types.SessId, err error) {
+    // 查询用户id
+    user, err := p.storage.GetUserInfoByUsername(userName)
+    if err != nil {
+        return "", fmt.Errorf("storage.GetUserInfoByUsername: %w", err)
+    }
+    return p.cache.CreateSess(userName, user.Uid, timeoutTsS)
 }
 
-func (p *SessMgmtT) GetSessCtx(sessId SessIdT) (sessCtx *SessCtxT, err error) {
-	return nil, errors.New("method not implemented")
+func (p *SessMgmt) GetSessCtx(sessId types.SessId) (sessCtx *types.SessCtx, err error) {
+    return p.cache.GetSessCtx(sessId)
 }
 
-func (p *SessMgmtT) GetSessCtxByUsername(userName string) (sessCtx *SessCtxT, err error) {
-	return nil, errors.New("method not implemented")
+func (p *SessMgmt) GetSessCtxByUsername(userName string) (sessCtx *types.SessCtx, err error) {
+    return p.cache.GetSessCtxByUsername(userName)
 }
 
-func (p *SessMgmtT) DeleteSess(sessId SessIdT) (err error) {
-	return errors.New("method not implemented")
+func (p *SessMgmt) DeleteSess(sessId types.SessId) (err error) {
+    return p.cache.DeleteSess(sessId)
 }

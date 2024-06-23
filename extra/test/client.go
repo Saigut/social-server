@@ -22,16 +22,16 @@ func main() {
 	c := pb.NewGrpcApiClient(conn)
 
 	// 调用 SessRegister
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 5 * time.Second)
 	defer cancel()
-	r, err := c.UmRegister(ctx, &pb.UmRegisterReq{UserName: "user123", Passphase: "pass123", Nickname: "JohnDoe", Email: "john@example.com"})
+	r, err := c.UmRegister(ctx, &pb.UmRegisterReq{UserName: "user123", Passphrase: "pass123", Email: "john@example.com"})
 	if err != nil {
 		Log.Error("could not register: %v", err)
 	}
 	Log.Info("Registration response: %v", r)
 
 	// 调用 SessUserLogin
-	l, err := c.SessUserLogin(ctx, &pb.SessUserLoginReq{UserName: "user123", Passphase: "pass123"})
+	l, err := c.SessUserLogin(ctx, &pb.SessUserLoginReq{Username: "user123", Passphrase: "pass123"})
 	if err != nil {
 		Log.Error("could not login: %v", err)
 	}
