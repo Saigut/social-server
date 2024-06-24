@@ -2,14 +2,14 @@ syntax = "proto3";
 
 package gen_grpc;
 
-// command：
+// generate command：
 // golang（proto 文件中不指定 go_package）：
 //    protoc --go_out=. --go_opt=paths=source_relative --go_opt=Mapi.proto='social_server/src/gen/grpc;gen_grpc' --go-grpc_out=. --go-grpc_opt=paths=source_relative --go-grpc_opt=Mapi.proto='social_server/src/gen/grpc;gen_grpc' ./api.proto
 // golang：
 //    protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative ./api.proto
-option go_package = "social_server/src/gen/grpc;gen_grpc";
 // js:
 //    protoc --js_out=import_style=commonjs:. --grpc-web_out=import_style=commonjs,mode=grpcwebtext:. api.proto
+option go_package = "social_server/src/gen/grpc;gen_grpc";
 
 
 // Session Service
@@ -26,11 +26,12 @@ service GrpcApi {
   rpc UmGetFriendList(UmGetFriendListReq) returns (UmGetFriendListRes);
 
   // 聊天
-  rpc ChatGetMsgList(ChatGetMsgListReq) returns (ChatGetMsgListRes);
-  rpc ChatGetBoxMsgHist(ChatGetBoxMsgHistReq) returns (ChatGetBoxMsgHistRes);
   rpc ChatSendMsg(ChatSendMsgReq) returns (ChatSendMsgRes);
-  rpc ChatCreateGroupConv(ChatCreateGroupConvReq) returns (ChatCreateGroupConvRes);
-  rpc ChatGetGroupConvList(ChatGetGroupConvListReq) returns (ChatGetGroupConvListRes);
+  rpc ChatCreateGroup(ChatCreateGroupReq) returns (ChatCreateGroupRes);
+  rpc ChatGetGroupList(ChatGetGroupListReq) returns (ChatGetGroupListRes);
+
+  // 更新事件
+  rpc GetUpdateList(GetUpdateListReq) returns (GetUpdateListRes);
 }
 
 enum ErrCode {
@@ -55,6 +56,7 @@ message SessUserLoginReq {
 message SessUserLoginRes {
   ErrCode errCode = 1;
   string sessId = 2;
+  uint64 uid = 3;
 }
 
 message SessUserLogoutReq {
@@ -66,11 +68,10 @@ message SessUserLogoutRes {
 
 // 用户管理接口参数
 message UmFriendInfo {
-  string username = 1;
-  string nickname = 2;
-  string noteName = 3;
-  // 添加朋友时不需要 uid
-  uint64 uid = 4;
+  uint64 uid = 1;
+  string username = 2;
+  string nickname = 3;
+  string noteName = 4;
 }
 
 message UmRegisterReq {
@@ -117,8 +118,8 @@ message UmGetFriendListRes {
 // 聊天接口参数
 message ChatPeerId {
   oneof PeerIdUnion {
-    uint64 peerUid = 1;
-    uint64 groupConvId = 2;
+    uint64 uid = 1;
+    uint64 groupId = 2;
   }
 }
 
@@ -127,21 +128,17 @@ enum ChatMsgType {
 }
 
 message ChatMsg {
-  uint64 senderUid = 1;
+  uint64 senderUid = 1;     // 发送消息时忽略此字段
   uint64 sentTsMs = 2;
   ChatMsgType msgType = 3;
   string msgContent = 4;
 }
 
-message ChatBoxMsg {
-  ChatPeerId peerId = 1;
-  ChatMsg msg = 2;
-  uint64 seqId = 3;
-}
-
-message ChatConvMsgList {
-  uint64 convId = 1;
-  repeated ChatMsg msgList = 2;
+message ChatConvMsg {
+  uint64 msgId = 1;         // 发送消息时忽略此字段
+  uint64 randMsgId = 2;     // 由客户端生成随机ID
+  ChatPeerId receiverId = 3;
+  ChatMsg msg = 4;
 }
 
 message ChatConvInfo {
@@ -149,44 +146,36 @@ message ChatConvInfo {
   repeated uint64 uidList = 2;
 }
 
-message ChatGetMsgListReq {
-  string sessId = 1;
-  uint64 localSeqId = 2;
-}
-message ChatGetMsgListRes {
-  ErrCode errCode = 1;
-  repeated ChatBoxMsg msgList = 2;
-}
-
-message ChatGetBoxMsgHistReq {
-  string sessId = 1;
-  ChatPeerId peerId = 2;
-}
-message ChatGetBoxMsgHistRes {
-  ErrCode errCode = 1;
-  repeated ChatMsg msgList = 2;
-}
-
 message ChatSendMsgReq {
   string sessId = 1;
-  ChatBoxMsg boxMsg = 2;
+  ChatConvMsg convMsg = 2;
 }
 message ChatSendMsgRes {
   ErrCode errCode = 1;
 }
 
-message ChatCreateGroupConvReq {
+message ChatCreateGroupReq {
   string sessId = 1;
 }
-message ChatCreateGroupConvRes {
+message ChatCreateGroupRes {
   ErrCode errCode = 1;
   uint64 convId = 2;
 }
 
-message ChatGetGroupConvListReq {
+message ChatGetGroupListReq {
   string sessId = 1;
 }
-message ChatGetGroupConvListRes {
+message ChatGetGroupListRes {
   ErrCode errCode = 1;
   repeated uint64 convIdList = 2;
+}
+
+message GetUpdateListReq {
+  string sessId = 1;
+  uint64 localSeqId = 2;
+}
+message GetUpdateListRes {
+  ErrCode errCode = 1;
+  uint64 seqId = 2;
+  repeated ChatConvMsg msgList = 3;
 }

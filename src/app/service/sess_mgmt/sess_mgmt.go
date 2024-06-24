@@ -18,13 +18,18 @@ func NewSessMgmt(storage *data.DB, cache *data.Cache) *SessMgmt {
     }
 }
 
-func (p *SessMgmt) CreateSess(userName string, timeoutTsS uint64) (sessId types.SessId, err error) {
+func (p *SessMgmt) CreateSess(userName string, timeoutTsS uint64) (sessId types.SessId, uid uint64, err error) {
     // 查询用户id
     user, err := p.storage.GetUserInfoByUsername(userName)
     if err != nil {
-        return "", fmt.Errorf("storage.GetUserInfoByUsername: %w", err)
+        return "", 0, fmt.Errorf("storage.GetUserInfoByUsername: %w", err)
     }
-    return p.cache.CreateSess(userName, user.Uid, timeoutTsS)
+    sessId, err = p.cache.CreateSess(userName, user.Uid, timeoutTsS)
+    if err != nil {
+        return "", 0, fmt.Errorf("cache.CreateSess: %w", err)
+    }
+
+    return sessId, user.Uid, nil
 }
 
 func (p *SessMgmt) GetSessCtx(sessId types.SessId) (sessCtx *types.SessCtx, err error) {

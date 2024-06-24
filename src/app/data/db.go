@@ -14,7 +14,7 @@ import (
 
 // Users table structure
 type User struct {
-	UserID    int
+	UserID    uint64
 	Username  string
 	Password  string
 	Email     string
@@ -23,43 +23,45 @@ type User struct {
 
 // Friends table structure
 type Friend struct {
-	UserID    int
-	FriendID  int
+	UserID    uint64
+	FriendID  uint64
 	Status    int
 	CreatedAt time.Time
 }
 
 // ChatGroups table structure
 type ChatGroup struct {
-	GroupID   int
+	GroupID   uint64
 	GroupName string
-	OwnerID   int
+	OwnerID   uint64
 	CreatedAt time.Time
 }
 
 // ChatGroupMembers table structure
 type ChatGroupMember struct {
-	GroupID  int
-	UserID   int
+	GroupID  uint64
+	UserID   uint64
 	Role     string
 	JoinedAt time.Time
 }
 
 // Messages table structure
 type Message struct {
-	MessageID   int
-	SenderID    int
-	ReceiverID  int
-	GroupID     int
+	MessageID   uint64
+	SenderID    uint64
+	ReceiverID  uint64
+	GroupID     uint64
 	Content     string
 	MessageType int
 	SentAt      time.Time
 }
 
 type InboxMsg struct {
-	UserID      int
-	SeqID       int
-	SenderID    int
+	UserID      uint64
+	SeqID       uint64
+	MsgId		uint64
+	RandMsgId	uint64
+	SenderID    uint64
 	ReceiverID  sql.NullInt64
 	GroupID     sql.NullInt64
 	Content     string
@@ -248,13 +250,15 @@ func convertDbMsgToChatMsgOfConv(rowMsg InboxMsg) (msg types.ChatMsgOfConv, err 
 	}
 
 	msg.SeqId = uint64(rowMsg.SeqID)
+	msg.MsgId = uint64(rowMsg.MsgId)
+	msg.RandMsgId = uint64(rowMsg.RandMsgId)
 
 	if rowMsg.GroupID.Valid {
-		msg.PeerId.PeerIdType = types.EmPeerIdType_GroupConvId
-		msg.PeerId.GroupConvId = uint64(rowMsg.GroupID.Int64)
+		msg.ReceiverId.PeerIdType = types.EmPeerIdType_GroupId
+		msg.ReceiverId.GroupId = uint64(rowMsg.GroupID.Int64)
 	} else if rowMsg.ReceiverID.Valid {
-		msg.PeerId.PeerIdType = types.EmPeerIdType_PeerUid
-		msg.PeerId.PeerUid = uint64(rowMsg.SenderID)
+		msg.ReceiverId.PeerIdType = types.EmPeerIdType_Uid
+		msg.ReceiverId.Uid = uint64(rowMsg.SenderID)
 	} else {
 		return msg, errors.New("invalid peer id")
 	}
@@ -265,11 +269,12 @@ func convertDbMsgToChatMsgOfConv(rowMsg InboxMsg) (msg types.ChatMsgOfConv, err 
 
 // Chat
 func (p *DB) GetChatMsgList(uid uint64, seqId uint64) (msgs []types.ChatMsgOfConv, err error) {
+	// 查询。按 seqId 升序排列
 	rows, err := p.queryRows(`
-        SELECT user_id, seq_id, sender_id, receiver_id, group_id, content, message_type, sent_at 
-        FROM Inbox
-        WHERE user_id = ? AND seq_id > ?
-    `, uid, seqId)
+		SELECT user_id, seq_id, msg_id, rand_msg_id, sender_id, receiver_id, group_id, content, message_type, sent_at
+		FROM Inbox WHERE user_id = ? AND seq_id > ? ORDER BY seq_id ASC`,
+		uid, seqId,
+	)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, errors.New("no new msg")
@@ -282,59 +287,60 @@ func (p *DB) GetChatMsgList(uid uint64, seqId uint64) (msgs []types.ChatMsgOfCon
 	for rows.Next() {
 		var msg types.ChatMsgOfConv
 		var rowMsg InboxMsg
-		err = rows.Scan(&rowMsg.UserID, &rowMsg.SeqID, &rowMsg.SenderID, &rowMsg.ReceiverID, &rowMsg.GroupID, &rowMsg.Content, &rowMsg.MessageType, &rowMsg.SentAt)
-		Log.Debug("rowMsg: %+v", rowMsg)
+		err = rows.Scan(
+			&rowMsg.UserID,
+			&rowMsg.SeqID,
+			&rowMsg.MsgId,
+			&rowMsg.RandMsgId,
+			&rowMsg.SenderID,
+			&rowMsg.ReceiverID,
+			&rowMsg.GroupID,
+			&rowMsg.Content,
+			&rowMsg.MessageType,
+			&rowMsg.SentAt,
+		)
 		msg, err = convertDbMsgToChatMsgOfConv(rowMsg)
 		if err != nil {
 			return nil, err
 		}
-		Log.Debug("msg: %+v", msg)
 		msgs = append(msgs, msg)
 	}
 
 	return msgs, nil
 }
 
-func (p *DB) GetConvMsgHist(peerId types.PeerId) (msgs []types.ChatMsg, err error) {
-	rows, err := p.queryRows("SELECT * FROM Messages WHERE (sender_id = ? OR receiver_id = ?) AND message_type = 'private'", peerId, peerId)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
+func (p *DB) SendMsg(convMsg types.ChatMsgOfConv) (err error) {
 
-	for rows.Next() {
-		var msg types.ChatMsg
-		var rowMsg Message
-		err := rows.Scan(&rowMsg.MessageID, &rowMsg.SenderID, &rowMsg.ReceiverID, &rowMsg.GroupID, &rowMsg.Content, &rowMsg.MessageType, &rowMsg.SentAt)
-		if err != nil {
-			return nil, err
-		}
-		msgs = append(msgs, msg)
-	}
-
-	return msgs, nil
-}
-
-func (p *DB) SendMsg(peerId types.PeerId, msg types.ChatMsg) (err error) {
-
-	if peerId.PeerIdType == types.EmPeerIdType_PeerUid {
+	if convMsg.ReceiverId.PeerIdType == types.EmPeerIdType_Uid {
 		// 分配 seqId
 		var seqId uint64
-		seqId, err = p.AllocateSeqId(peerId.PeerUid)
+		seqId, err = p.AllocateSeqId(convMsg.ReceiverId.Uid)
 		if err != nil {
 			return fmt.Errorf("AllocateSeqId: %w", err)
 		}
 
+		// 分配 msgId
+		convMsg.MsgId, err = p.AllocateChatSeqId(convMsg.Msg.SenderUid, convMsg.ReceiverId.Uid)
+		if err != nil {
+			return fmt.Errorf("AllocateChatSeqId: %w", err)
+		}
+
 		// 添加消息
-		_, err = p.sqlExec("INSERT INTO Inbox (user_id, seq_id, sender_id, receiver_id, group_id, content, message_type) VALUES (?, ?, ?, ?, ?, ?, ?)",
-			peerId.PeerUid, seqId, msg.SenderUid, peerId.PeerUid, nil, msg.MsgContent, msg.MsgType)
+		_, err = p.sqlExec("INSERT INTO Inbox (user_id, seq_id, msg_id, rand_msg_id, sender_id, receiver_id, group_id, content, message_type) VALUES (?, ?, ?, ?, ?, ?, ?)",
+			convMsg.ReceiverId.Uid, seqId, convMsg.MsgId, convMsg.RandMsgId, convMsg.Msg.SenderUid, convMsg.ReceiverId.Uid, nil, convMsg.Msg.MsgContent, convMsg.Msg.MsgType)
+		if err != nil {
+			return fmt.Errorf("user sqlExec: %w", err)
+		}
+		// 也为发送者发送消息
+		_, err = p.sqlExec("INSERT INTO Inbox (user_id, seq_id, msg_id, rand_msg_id, sender_id, receiver_id, group_id, content, message_type) VALUES (?, ?, ?, ?, ?, ?, ?)",
+			convMsg.Msg.SenderUid, seqId, convMsg.MsgId, convMsg.RandMsgId, convMsg.Msg.SenderUid, convMsg.ReceiverId.Uid, nil, convMsg.Msg.MsgContent, convMsg.Msg.MsgType)
 		if err != nil {
 			return fmt.Errorf("user sqlExec: %w", err)
 		}
 
 	} else {
 		// 获取群员群员列表
-		memberList, err := p.GetGroupMemberList(peerId.GroupConvId)
+		memberList, err := p.GetGroupMemberList(convMsg.ReceiverId.GroupId)
 		if err != nil {
 			return fmt.Errorf("GetGroupMemberList: %w", err)
 		}
@@ -347,9 +353,15 @@ func (p *DB) SendMsg(peerId types.PeerId, msg types.ChatMsg) (err error) {
 				return fmt.Errorf("AllocateSeqId: %w", err)
 			}
 
+			// 分配 msgId
+			convMsg.MsgId, err = p.AllocateGroupSeqId(convMsg.ReceiverId.GroupId)
+			if err != nil {
+				return fmt.Errorf("AllocateGroupSeqId: %w", err)
+			}
+
 			// 添加消息
-			_, err = p.sqlExec("INSERT INTO Inbox (user_id, seq_id, sender_id, receiver_id, group_id, content, message_type) VALUES (?, ?, ?, ?, ?, ?, ?)",
-				memberUid, seqId, msg.SenderUid, nil, peerId.GroupConvId, msg.MsgContent, msg.MsgType)
+			_, err = p.sqlExec("INSERT INTO Inbox (user_id, seq_id, msg_id, rand_msg_id, sender_id, receiver_id, group_id, content, message_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+				memberUid, seqId, convMsg.MsgId, convMsg.RandMsgId, convMsg.Msg.SenderUid, nil, convMsg.ReceiverId.GroupId, convMsg.Msg.MsgContent, convMsg.Msg.MsgType)
 			if err != nil {
 				return fmt.Errorf("group sqlExec: %w", err)
 			}
@@ -532,7 +544,7 @@ func (p *DB) AllocateSeqId(uid uint64) (seqId uint64, err error) {
 			return 0, fmt.Errorf("Scan: %w", err)
 		}
 
-		// 用户还没有分配过 seqId，需要初始化
+		// 还没有分配过 seqId，需要初始化
 		_, err = p.sqlExec( "INSERT INTO SeqIds (user_id, seq_id) VALUES (?, ?)", uid, 2)
 		if err != nil {
 			return 0, fmt.Errorf("sqlExec: %w", err)
@@ -542,6 +554,67 @@ func (p *DB) AllocateSeqId(uid uint64) (seqId uint64, err error) {
 
 	// 更新 seqId
 	_, err = p.sqlExec("UPDATE SeqIds SET seq_id = ? WHERE user_id = ?", seqId + 1, uid)
+	if err != nil {
+		return 0, fmt.Errorf("sqlExec: %w", err)
+	}
+
+	return seqId, nil
+}
+
+func (p *DB) AllocateChatSeqId(uid1 uint64, uid2 uint64) (seqId uint64, err error) {
+	if uid1 > uid2 {
+		uid1, uid2 = uid2, uid1
+	}
+	row, err := p.queryRow("SELECT seq_id FROM ChatSeqIds WHERE user1_id = ? AND user2_id = ?", uid1, uid2)
+	if err != nil {
+		return 0, fmt.Errorf("queryRow: %w", err)
+	}
+
+	err = row.Scan(&seqId)
+	if err != nil {
+		if err != sql.ErrNoRows {
+			return 0, fmt.Errorf("Scan: %w", err)
+		}
+
+		// 还没有分配过 seqId，需要初始化
+		_, err = p.sqlExec( "INSERT INTO ChatSeqIds (user1_id, user2_id, seq_id) VALUES (?, ?)", uid1, uid2, 2)
+		if err != nil {
+			return 0, fmt.Errorf("sqlExec: %w", err)
+		}
+		return 1, nil
+	}
+
+	// 更新 seqId
+	_, err = p.sqlExec("UPDATE ChatSeqIds SET seq_id = ? WHERE user1_id = ? AND user2_id = ?", seqId + 1, uid1, uid2)
+	if err != nil {
+		return 0, fmt.Errorf("sqlExec: %w", err)
+	}
+
+	return seqId, nil
+}
+
+func (p *DB) AllocateGroupSeqId(groupId uint64) (seqId uint64, err error) {
+	row, err := p.queryRow("SELECT seq_id FROM GroupSeqIds WHERE group_id = ?", groupId)
+	if err != nil {
+		return 0, fmt.Errorf("queryRow: %w", err)
+	}
+
+	err = row.Scan(&seqId)
+	if err != nil {
+		if err != sql.ErrNoRows {
+			return 0, fmt.Errorf("Scan: %w", err)
+		}
+
+		// 还没有分配过 seqId，需要初始化
+		_, err = p.sqlExec( "INSERT INTO GroupSeqIds (group_id, seq_id) VALUES (?, ?)", groupId, 2)
+		if err != nil {
+			return 0, fmt.Errorf("sqlExec: %w", err)
+		}
+		return 1, nil
+	}
+
+	// 更新 seqId
+	_, err = p.sqlExec("UPDATE GroupSeqIds SET seq_id = ? WHERE group_id = ?", seqId + 1, groupId)
 	if err != nil {
 		return 0, fmt.Errorf("sqlExec: %w", err)
 	}

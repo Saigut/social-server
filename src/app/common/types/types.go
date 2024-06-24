@@ -18,14 +18,14 @@ const (
 
 type EmPeerIdType uint
 const (
-    EmPeerIdType_PeerUid EmPeerIdType = 0
-    EmPeerIdType_GroupConvId EmPeerIdType = 1
+    EmPeerIdType_Uid EmPeerIdType = 0
+    EmPeerIdType_GroupId EmPeerIdType = 1
 )
 
 type PeerId struct {
     PeerIdType	  EmPeerIdType
-    PeerUid       uint64
-    GroupConvId   uint64
+    Uid       uint64
+    GroupId   uint64
 }
 
 type ChatMsg struct {
@@ -36,9 +36,11 @@ type ChatMsg struct {
 }
 
 type ChatMsgOfConv struct {
-    PeerId PeerId
-    Msg    ChatMsg
-    SeqId  uint64
+    SeqId      uint64
+    MsgId      uint64
+    RandMsgId  uint64
+    ReceiverId PeerId
+    Msg        ChatMsg
 }
 
 type ChatConvInfo struct {

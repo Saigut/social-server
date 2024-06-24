@@ -76,22 +76,23 @@ func (p *Core) SessUserLogin(req *gen_grpc.SessUserLoginReq) (*gen_grpc.SessUser
 	var sessCtx *types.SessCtx
 	sessCtx, err = p.sessMgmt.GetSessCtxByUsername(req.GetUsername())
 	if err == nil {
-		res.SessId = string(sessCtx.SessId)
 		Log.Debug("SessUserLogin: SessId: %s", res.SessId)
+		res.SessId = string(sessCtx.SessId)
+		res.Uid = sessCtx.Uid
 		res.ErrCode = gen_grpc.ErrCode_emErrCode_Ok
 		return &res, nil
 	}
 
 	// 若未登录，创建新会话
 	var sessId types.SessId
-	sessId, err = p.sessMgmt.CreateSess(req.GetUsername(), 2*3600)
+	sessId, res.Uid, err = p.sessMgmt.CreateSess(req.GetUsername(), 2*3600)
 	if err != nil {
 		Log.Error("SessUserLogin: CreateSess: %s", err.Error())
 		res.ErrCode = gen_grpc.ErrCode_emErrCode_UnknownErr
 		return &res, nil
 	}
-	res.SessId = string(sessId)
 	Log.Debug("SessUserLogin: SessId: %s", res.SessId)
+	res.SessId = string(sessId)
 	res.ErrCode = gen_grpc.ErrCode_emErrCode_Ok
 	return &res, nil
 }
@@ -291,15 +292,15 @@ func (p *Core) UmGetFriendList(req *gen_grpc.UmGetFriendListReq) (*gen_grpc.UmGe
 	return &res, nil
 }
 
-func (p *Core) ChatGetMsgList(req *gen_grpc.ChatGetMsgListReq) (*gen_grpc.ChatGetMsgListRes, error) {
+func (p *Core) GetUpdateList(req *gen_grpc.GetUpdateListReq) (*gen_grpc.GetUpdateListRes, error) {
 	var err error
-	var res gen_grpc.ChatGetMsgListRes
+	var res gen_grpc.GetUpdateListRes
 
 	// 获取会话
 	var sessCtx *types.SessCtx
 	sessCtx, err = p.sessMgmt.GetSessCtx(types.SessId(req.GetSessId()))
 	if err != nil {
-		Log.Error("ChatGetMsgList: GetSessCtx: %s", err.Error())
+		Log.Error("GetUpdateList: GetSessCtx: %s", err.Error())
 		res.ErrCode = gen_grpc.ErrCode_emErrCode_UnknownErr
 		return &res, nil
 	}
@@ -308,98 +309,29 @@ func (p *Core) ChatGetMsgList(req *gen_grpc.ChatGetMsgListReq) (*gen_grpc.ChatGe
 	var msgList []types.ChatMsgOfConv
 	msgList, err = p.chat.GetChatMsgList(sessCtx.Uid, req.GetLocalSeqId())
 	if err != nil {
-		Log.Error("ChatGetMsgList: GetChatMsgList: %s", err.Error())
+		Log.Error("GetUpdateList: GetChatMsgList: %s", err.Error())
 		res.ErrCode = gen_grpc.ErrCode_emErrCode_UnknownErr
 		return &res, nil
 	}
 	for _, aConvMsg := range msgList {
-		aBoxMsgApi := &gen_grpc.ChatBoxMsg{
-			PeerId: &gen_grpc.ChatPeerId{},
+		aBoxMsgApi := &gen_grpc.ChatConvMsg{
+			MsgId:  aConvMsg.MsgId,
+			RandMsgId: aConvMsg.RandMsgId,
+			ReceiverId: &gen_grpc.ChatPeerId{},
 			Msg:    &gen_grpc.ChatMsg{},
-			SeqId:  aConvMsg.SeqId,
 		}
-		if aConvMsg.PeerId.PeerIdType == types.EmPeerIdType_PeerUid {
-			aBoxMsgApi.PeerId.PeerIdUnion = &gen_grpc.ChatPeerId_PeerUid{PeerUid: aConvMsg.PeerId.PeerUid}
+		if aConvMsg.ReceiverId.PeerIdType == types.EmPeerIdType_Uid {
+			aBoxMsgApi.ReceiverId.PeerIdUnion = &gen_grpc.ChatPeerId_Uid{Uid: aConvMsg.ReceiverId.Uid}
 		} else {
-			aBoxMsgApi.PeerId.PeerIdUnion = &gen_grpc.ChatPeerId_GroupConvId{GroupConvId: aConvMsg.PeerId.GroupConvId}
+			aBoxMsgApi.ReceiverId.PeerIdUnion = &gen_grpc.ChatPeerId_GroupId{GroupId: aConvMsg.ReceiverId.GroupId}
 		}
 		aBoxMsgApi.Msg.MsgType = gen_grpc.ChatMsgType(aConvMsg.Msg.MsgType)
 		aBoxMsgApi.Msg.SentTsMs = aConvMsg.Msg.SentTsMs
 		aBoxMsgApi.Msg.SenderUid = aConvMsg.Msg.SenderUid
 		aBoxMsgApi.Msg.MsgContent = aConvMsg.Msg.MsgContent
-		Log.Debug("aConvMsg.Msg.MsgContent: %s", aConvMsg.Msg.MsgContent)
-		Log.Debug("aBoxMsgApi.Msg.MsgContent: %s", aBoxMsgApi.Msg.MsgContent)
 		res.MsgList = append(res.MsgList, aBoxMsgApi)
 	}
-
-	res.ErrCode = gen_grpc.ErrCode_emErrCode_Ok
-	return &res, nil
-}
-
-func (p *Core) ChatGetBoxMsgHist(req *gen_grpc.ChatGetBoxMsgHistReq) (*gen_grpc.ChatGetBoxMsgHistRes, error) {
-	var err error
-	var res gen_grpc.ChatGetBoxMsgHistRes
-
-	// 获取会话
-	var sessCtx *types.SessCtx
-	sessCtx, err = p.sessMgmt.GetSessCtx(types.SessId(req.GetSessId()))
-	if err != nil {
-		Log.Error("ChatGetBoxMsgHist: GetSessCtx: %s", err.Error())
-		res.ErrCode = gen_grpc.ErrCode_emErrCode_UnknownErr
-		return &res, nil
-	}
-
-	// 检查用户是否在对话中
-	switch x := req.GetPeerId().GetPeerIdUnion().(type) {
-	case *gen_grpc.ChatPeerId_PeerUid:
-		// 不作处理
-	case *gen_grpc.ChatPeerId_GroupConvId:
-		inConv, err := p.chat.IsUserInConv(x.GroupConvId, sessCtx.Uid)
-		if err != nil {
-			Log.Error("ChatGetBoxMsgHist: IsUserInConv: %s", err.Error())
-			res.ErrCode = gen_grpc.ErrCode_emErrCode_UnknownErr
-			return &res, nil
-		}
-		if !inConv {
-			res.ErrCode = gen_grpc.ErrCode_emErrCode_UserNotInConv
-			return &res, nil
-		}
-	default:
-		Log.Error("ChatGetBoxMsgHist: Unknown PeerId type")
-		res.ErrCode = gen_grpc.ErrCode_emErrCode_UnknownErr
-		return &res, nil
-	}
-
-	// 获取聊天历史
-	var peerId types.PeerId
-	switch x := req.GetPeerId().GetPeerIdUnion().(type) {
-	case *gen_grpc.ChatPeerId_PeerUid:
-		peerId.PeerIdType = types.EmPeerIdType_PeerUid
-		peerId.PeerUid = x.PeerUid
-	case *gen_grpc.ChatPeerId_GroupConvId:
-		peerId.PeerIdType = types.EmPeerIdType_GroupConvId
-		peerId.GroupConvId = x.GroupConvId
-	default:
-		Log.Error("ChatGetBoxMsgHist: Unknown PeerId type")
-		res.ErrCode = gen_grpc.ErrCode_emErrCode_UnknownErr
-		return &res, nil
-	}
-
-	var msgList []types.ChatMsg
-	msgList, err = p.chat.GetConvMsgHist(peerId)
-	if err != nil {
-		Log.Error("ChatGetBoxMsgHist: GetConvMsgHist: %s", err.Error())
-		res.ErrCode = gen_grpc.ErrCode_emErrCode_UnknownErr
-		return &res, nil
-	}
-	for _, aMsg := range msgList {
-		var aMsgApi gen_grpc.ChatMsg
-		aMsgApi.MsgType = gen_grpc.ChatMsgType(aMsg.MsgType)
-		aMsgApi.SentTsMs = aMsg.SentTsMs
-		aMsgApi.SenderUid = aMsg.SenderUid
-		aMsgApi.MsgContent = aMsg.MsgContent
-		res.MsgList = append(res.MsgList, &aMsgApi)
-	}
+	res.SeqId = msgList[len(msgList)-1].SeqId
 
 	res.ErrCode = gen_grpc.ErrCode_emErrCode_Ok
 	return &res, nil
@@ -419,27 +351,28 @@ func (p *Core) ChatSendMsg(req *gen_grpc.ChatSendMsgReq) (*gen_grpc.ChatSendMsgR
 	}
 
 	// 发送聊天消息
-	var peerId types.PeerId
-	switch x := req.GetBoxMsg().GetPeerId().GetPeerIdUnion().(type) {
-	case *gen_grpc.ChatPeerId_PeerUid:
-		peerId.PeerIdType = types.EmPeerIdType_PeerUid
-		peerId.PeerUid = x.PeerUid
-	case *gen_grpc.ChatPeerId_GroupConvId:
-		peerId.PeerIdType = types.EmPeerIdType_GroupConvId
-		peerId.GroupConvId = x.GroupConvId
+	var convMsg types.ChatMsgOfConv
+	switch x := req.GetConvMsg().GetReceiverId().GetPeerIdUnion().(type) {
+	case *gen_grpc.ChatPeerId_Uid:
+		convMsg.ReceiverId.PeerIdType = types.EmPeerIdType_Uid
+		convMsg.ReceiverId.Uid = x.Uid
+	case *gen_grpc.ChatPeerId_GroupId:
+		convMsg.ReceiverId.PeerIdType = types.EmPeerIdType_GroupId
+		convMsg.ReceiverId.GroupId = x.GroupId
 	default:
-		Log.Error("ChatSendMsg: Unknown PeerId type")
+		Log.Error("ChatSendMsg: Unknown ReceiverId type")
 		res.ErrCode = gen_grpc.ErrCode_emErrCode_UnknownErr
 		return &res, nil
 	}
 
-	var msg types.ChatMsg
-	msg.MsgType = types.EmChatMsgType(req.GetBoxMsg().GetMsg().GetMsgType())
-	msg.SentTsMs = uint64(time.Now().UnixNano() / 1000000)
-	msg.SenderUid = sessCtx.Uid
-	msg.MsgContent = req.GetBoxMsg().GetMsg().GetMsgContent()
+	convMsg.Msg.MsgType = types.EmChatMsgType(req.GetConvMsg().GetMsg().GetMsgType())
+	convMsg.Msg.SentTsMs = uint64(time.Now().UnixNano() / 1000000)
+	convMsg.Msg.SenderUid = sessCtx.Uid
+	convMsg.Msg.MsgContent = req.GetConvMsg().GetMsg().GetMsgContent()
 
-	err = p.chat.SendMsg(peerId, msg)
+	convMsg.RandMsgId = req.GetConvMsg().GetRandMsgId()
+
+	err = p.chat.SendMsg(convMsg)
 	if err != nil {
 		Log.Error("ChatSendMsg: SendMsg: %s", err.Error())
 		res.ErrCode = gen_grpc.ErrCode_emErrCode_UnknownErr
@@ -450,15 +383,15 @@ func (p *Core) ChatSendMsg(req *gen_grpc.ChatSendMsgReq) (*gen_grpc.ChatSendMsgR
 	return &res, nil
 }
 
-func (p *Core) ChatCreateGroupConv(req *gen_grpc.ChatCreateGroupConvReq) (*gen_grpc.ChatCreateGroupConvRes, error) {
+func (p *Core) ChatCreateGroup(req *gen_grpc.ChatCreateGroupReq) (*gen_grpc.ChatCreateGroupRes, error) {
 	var err error
-	var res	gen_grpc.ChatCreateGroupConvRes
+	var res	gen_grpc.ChatCreateGroupRes
 
 	// 获取会话
 	var sessCtx *types.SessCtx
 	sessCtx, err = p.sessMgmt.GetSessCtx(types.SessId(req.GetSessId()))
 	if err != nil {
-		Log.Error("ChatCreateGroupConv: GetSessCtx: %s", err.Error())
+		Log.Error("ChatCreateGroup: GetSessCtx: %s", err.Error())
 		res.ErrCode = gen_grpc.ErrCode_emErrCode_UnknownErr
 		return &res, nil
 	}
@@ -467,7 +400,7 @@ func (p *Core) ChatCreateGroupConv(req *gen_grpc.ChatCreateGroupConvReq) (*gen_g
 	var convId uint64
 	convId, err = p.chat.CreateGroupConv(sessCtx.Uid)
 	if err != nil {
-		Log.Error("ChatCreateGroupConv: CreateGroupConv: %s", err.Error())
+		Log.Error("ChatCreateGroup: CreateGroupConv: %s", err.Error())
 		res.ErrCode = gen_grpc.ErrCode_emErrCode_UnknownErr
 		return &res, nil
 	}
@@ -478,15 +411,15 @@ func (p *Core) ChatCreateGroupConv(req *gen_grpc.ChatCreateGroupConvReq) (*gen_g
 	return &res, nil
 }
 
-func (p *Core) ChatGetGroupConvList(req *gen_grpc.ChatGetGroupConvListReq) (*gen_grpc.ChatGetGroupConvListRes, error) {
+func (p *Core) ChatGetGroupList(req *gen_grpc.ChatGetGroupListReq) (*gen_grpc.ChatGetGroupListRes, error) {
 	var err error
-	var res	gen_grpc.ChatGetGroupConvListRes
+	var res	gen_grpc.ChatGetGroupListRes
 
 	// 获取会话
 	var sessCtx *types.SessCtx
 	sessCtx, err = p.sessMgmt.GetSessCtx(types.SessId(req.GetSessId()))
 	if err != nil {
-		Log.Error("ChatGetGroupConvList: GetSessCtx: %s", err.Error())
+		Log.Error("ChatGetGroupList: GetSessCtx: %s", err.Error())
 		res.ErrCode = gen_grpc.ErrCode_emErrCode_UnknownErr
 		return &res, nil
 	}
@@ -495,7 +428,7 @@ func (p *Core) ChatGetGroupConvList(req *gen_grpc.ChatGetGroupConvListReq) (*gen
 	var ConvIdList []uint64
 	ConvIdList, err = p.chat.GetGroupConvList(sessCtx.Uid)
 	if err != nil {
-		Log.Error("ChatGetGroupConvList: GetGroupConvList: %s", err.Error())
+		Log.Error("ChatGetGroupList: GetGroupConvList: %s", err.Error())
 		res.ErrCode = gen_grpc.ErrCode_emErrCode_UnknownErr
 		return &res, nil
 	}

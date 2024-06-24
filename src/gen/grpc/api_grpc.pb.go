@@ -32,11 +32,11 @@ type GrpcApiClient interface {
 	UmDelFriend(ctx context.Context, in *UmDelFriendReq, opts ...grpc.CallOption) (*UmDelFriendRes, error)
 	UmGetFriendList(ctx context.Context, in *UmGetFriendListReq, opts ...grpc.CallOption) (*UmGetFriendListRes, error)
 	// 聊天
-	ChatGetMsgList(ctx context.Context, in *ChatGetMsgListReq, opts ...grpc.CallOption) (*ChatGetMsgListRes, error)
-	ChatGetBoxMsgHist(ctx context.Context, in *ChatGetBoxMsgHistReq, opts ...grpc.CallOption) (*ChatGetBoxMsgHistRes, error)
 	ChatSendMsg(ctx context.Context, in *ChatSendMsgReq, opts ...grpc.CallOption) (*ChatSendMsgRes, error)
-	ChatCreateGroupConv(ctx context.Context, in *ChatCreateGroupConvReq, opts ...grpc.CallOption) (*ChatCreateGroupConvRes, error)
-	ChatGetGroupConvList(ctx context.Context, in *ChatGetGroupConvListReq, opts ...grpc.CallOption) (*ChatGetGroupConvListRes, error)
+	ChatCreateGroup(ctx context.Context, in *ChatCreateGroupReq, opts ...grpc.CallOption) (*ChatCreateGroupRes, error)
+	ChatGetGroupList(ctx context.Context, in *ChatGetGroupListReq, opts ...grpc.CallOption) (*ChatGetGroupListRes, error)
+	// 更新事件
+	GetUpdateList(ctx context.Context, in *GetUpdateListReq, opts ...grpc.CallOption) (*GetUpdateListRes, error)
 }
 
 type grpcApiClient struct {
@@ -110,24 +110,6 @@ func (c *grpcApiClient) UmGetFriendList(ctx context.Context, in *UmGetFriendList
 	return out, nil
 }
 
-func (c *grpcApiClient) ChatGetMsgList(ctx context.Context, in *ChatGetMsgListReq, opts ...grpc.CallOption) (*ChatGetMsgListRes, error) {
-	out := new(ChatGetMsgListRes)
-	err := c.cc.Invoke(ctx, "/gen_grpc.GrpcApi/ChatGetMsgList", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *grpcApiClient) ChatGetBoxMsgHist(ctx context.Context, in *ChatGetBoxMsgHistReq, opts ...grpc.CallOption) (*ChatGetBoxMsgHistRes, error) {
-	out := new(ChatGetBoxMsgHistRes)
-	err := c.cc.Invoke(ctx, "/gen_grpc.GrpcApi/ChatGetBoxMsgHist", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *grpcApiClient) ChatSendMsg(ctx context.Context, in *ChatSendMsgReq, opts ...grpc.CallOption) (*ChatSendMsgRes, error) {
 	out := new(ChatSendMsgRes)
 	err := c.cc.Invoke(ctx, "/gen_grpc.GrpcApi/ChatSendMsg", in, out, opts...)
@@ -137,18 +119,27 @@ func (c *grpcApiClient) ChatSendMsg(ctx context.Context, in *ChatSendMsgReq, opt
 	return out, nil
 }
 
-func (c *grpcApiClient) ChatCreateGroupConv(ctx context.Context, in *ChatCreateGroupConvReq, opts ...grpc.CallOption) (*ChatCreateGroupConvRes, error) {
-	out := new(ChatCreateGroupConvRes)
-	err := c.cc.Invoke(ctx, "/gen_grpc.GrpcApi/ChatCreateGroupConv", in, out, opts...)
+func (c *grpcApiClient) ChatCreateGroup(ctx context.Context, in *ChatCreateGroupReq, opts ...grpc.CallOption) (*ChatCreateGroupRes, error) {
+	out := new(ChatCreateGroupRes)
+	err := c.cc.Invoke(ctx, "/gen_grpc.GrpcApi/ChatCreateGroup", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *grpcApiClient) ChatGetGroupConvList(ctx context.Context, in *ChatGetGroupConvListReq, opts ...grpc.CallOption) (*ChatGetGroupConvListRes, error) {
-	out := new(ChatGetGroupConvListRes)
-	err := c.cc.Invoke(ctx, "/gen_grpc.GrpcApi/ChatGetGroupConvList", in, out, opts...)
+func (c *grpcApiClient) ChatGetGroupList(ctx context.Context, in *ChatGetGroupListReq, opts ...grpc.CallOption) (*ChatGetGroupListRes, error) {
+	out := new(ChatGetGroupListRes)
+	err := c.cc.Invoke(ctx, "/gen_grpc.GrpcApi/ChatGetGroupList", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *grpcApiClient) GetUpdateList(ctx context.Context, in *GetUpdateListReq, opts ...grpc.CallOption) (*GetUpdateListRes, error) {
+	out := new(GetUpdateListRes)
+	err := c.cc.Invoke(ctx, "/gen_grpc.GrpcApi/GetUpdateList", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -169,11 +160,11 @@ type GrpcApiServer interface {
 	UmDelFriend(context.Context, *UmDelFriendReq) (*UmDelFriendRes, error)
 	UmGetFriendList(context.Context, *UmGetFriendListReq) (*UmGetFriendListRes, error)
 	// 聊天
-	ChatGetMsgList(context.Context, *ChatGetMsgListReq) (*ChatGetMsgListRes, error)
-	ChatGetBoxMsgHist(context.Context, *ChatGetBoxMsgHistReq) (*ChatGetBoxMsgHistRes, error)
 	ChatSendMsg(context.Context, *ChatSendMsgReq) (*ChatSendMsgRes, error)
-	ChatCreateGroupConv(context.Context, *ChatCreateGroupConvReq) (*ChatCreateGroupConvRes, error)
-	ChatGetGroupConvList(context.Context, *ChatGetGroupConvListReq) (*ChatGetGroupConvListRes, error)
+	ChatCreateGroup(context.Context, *ChatCreateGroupReq) (*ChatCreateGroupRes, error)
+	ChatGetGroupList(context.Context, *ChatGetGroupListReq) (*ChatGetGroupListRes, error)
+	// 更新事件
+	GetUpdateList(context.Context, *GetUpdateListReq) (*GetUpdateListRes, error)
 	mustEmbedUnimplementedGrpcApiServer()
 }
 
@@ -202,20 +193,17 @@ func (UnimplementedGrpcApiServer) UmDelFriend(context.Context, *UmDelFriendReq) 
 func (UnimplementedGrpcApiServer) UmGetFriendList(context.Context, *UmGetFriendListReq) (*UmGetFriendListRes, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UmGetFriendList not implemented")
 }
-func (UnimplementedGrpcApiServer) ChatGetMsgList(context.Context, *ChatGetMsgListReq) (*ChatGetMsgListRes, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ChatGetMsgList not implemented")
-}
-func (UnimplementedGrpcApiServer) ChatGetBoxMsgHist(context.Context, *ChatGetBoxMsgHistReq) (*ChatGetBoxMsgHistRes, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ChatGetBoxMsgHist not implemented")
-}
 func (UnimplementedGrpcApiServer) ChatSendMsg(context.Context, *ChatSendMsgReq) (*ChatSendMsgRes, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ChatSendMsg not implemented")
 }
-func (UnimplementedGrpcApiServer) ChatCreateGroupConv(context.Context, *ChatCreateGroupConvReq) (*ChatCreateGroupConvRes, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ChatCreateGroupConv not implemented")
+func (UnimplementedGrpcApiServer) ChatCreateGroup(context.Context, *ChatCreateGroupReq) (*ChatCreateGroupRes, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ChatCreateGroup not implemented")
 }
-func (UnimplementedGrpcApiServer) ChatGetGroupConvList(context.Context, *ChatGetGroupConvListReq) (*ChatGetGroupConvListRes, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ChatGetGroupConvList not implemented")
+func (UnimplementedGrpcApiServer) ChatGetGroupList(context.Context, *ChatGetGroupListReq) (*ChatGetGroupListRes, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ChatGetGroupList not implemented")
+}
+func (UnimplementedGrpcApiServer) GetUpdateList(context.Context, *GetUpdateListReq) (*GetUpdateListRes, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetUpdateList not implemented")
 }
 func (UnimplementedGrpcApiServer) mustEmbedUnimplementedGrpcApiServer() {}
 
@@ -356,42 +344,6 @@ func _GrpcApi_UmGetFriendList_Handler(srv interface{}, ctx context.Context, dec 
 	return interceptor(ctx, in, info, handler)
 }
 
-func _GrpcApi_ChatGetMsgList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ChatGetMsgListReq)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(GrpcApiServer).ChatGetMsgList(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/gen_grpc.GrpcApi/ChatGetMsgList",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(GrpcApiServer).ChatGetMsgList(ctx, req.(*ChatGetMsgListReq))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _GrpcApi_ChatGetBoxMsgHist_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ChatGetBoxMsgHistReq)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(GrpcApiServer).ChatGetBoxMsgHist(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/gen_grpc.GrpcApi/ChatGetBoxMsgHist",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(GrpcApiServer).ChatGetBoxMsgHist(ctx, req.(*ChatGetBoxMsgHistReq))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _GrpcApi_ChatSendMsg_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ChatSendMsgReq)
 	if err := dec(in); err != nil {
@@ -410,38 +362,56 @@ func _GrpcApi_ChatSendMsg_Handler(srv interface{}, ctx context.Context, dec func
 	return interceptor(ctx, in, info, handler)
 }
 
-func _GrpcApi_ChatCreateGroupConv_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ChatCreateGroupConvReq)
+func _GrpcApi_ChatCreateGroup_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ChatCreateGroupReq)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(GrpcApiServer).ChatCreateGroupConv(ctx, in)
+		return srv.(GrpcApiServer).ChatCreateGroup(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/gen_grpc.GrpcApi/ChatCreateGroupConv",
+		FullMethod: "/gen_grpc.GrpcApi/ChatCreateGroup",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(GrpcApiServer).ChatCreateGroupConv(ctx, req.(*ChatCreateGroupConvReq))
+		return srv.(GrpcApiServer).ChatCreateGroup(ctx, req.(*ChatCreateGroupReq))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _GrpcApi_ChatGetGroupConvList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ChatGetGroupConvListReq)
+func _GrpcApi_ChatGetGroupList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ChatGetGroupListReq)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(GrpcApiServer).ChatGetGroupConvList(ctx, in)
+		return srv.(GrpcApiServer).ChatGetGroupList(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/gen_grpc.GrpcApi/ChatGetGroupConvList",
+		FullMethod: "/gen_grpc.GrpcApi/ChatGetGroupList",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(GrpcApiServer).ChatGetGroupConvList(ctx, req.(*ChatGetGroupConvListReq))
+		return srv.(GrpcApiServer).ChatGetGroupList(ctx, req.(*ChatGetGroupListReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GrpcApi_GetUpdateList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetUpdateListReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GrpcApiServer).GetUpdateList(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/gen_grpc.GrpcApi/GetUpdateList",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GrpcApiServer).GetUpdateList(ctx, req.(*GetUpdateListReq))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -482,24 +452,20 @@ var GrpcApi_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _GrpcApi_UmGetFriendList_Handler,
 		},
 		{
-			MethodName: "ChatGetMsgList",
-			Handler:    _GrpcApi_ChatGetMsgList_Handler,
-		},
-		{
-			MethodName: "ChatGetBoxMsgHist",
-			Handler:    _GrpcApi_ChatGetBoxMsgHist_Handler,
-		},
-		{
 			MethodName: "ChatSendMsg",
 			Handler:    _GrpcApi_ChatSendMsg_Handler,
 		},
 		{
-			MethodName: "ChatCreateGroupConv",
-			Handler:    _GrpcApi_ChatCreateGroupConv_Handler,
+			MethodName: "ChatCreateGroup",
+			Handler:    _GrpcApi_ChatCreateGroup_Handler,
 		},
 		{
-			MethodName: "ChatGetGroupConvList",
-			Handler:    _GrpcApi_ChatGetGroupConvList_Handler,
+			MethodName: "ChatGetGroupList",
+			Handler:    _GrpcApi_ChatGetGroupList_Handler,
+		},
+		{
+			MethodName: "GetUpdateList",
+			Handler:    _GrpcApi_GetUpdateList_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

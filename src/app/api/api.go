@@ -62,20 +62,17 @@ func (p *grpcApiServer) UmDelFriend(ctx context.Context, req *UmDelFriendReq) (*
 func (p *grpcApiServer) UmGetFriendList(ctx context.Context, req *UmGetFriendListReq) (*UmGetFriendListRes, error) {
 	return p.Core.UmGetFriendList(req)
 }
-func (p *grpcApiServer) ChatGetMsgList(ctx context.Context, req *ChatGetMsgListReq) (*ChatGetMsgListRes, error) {
-	return p.Core.ChatGetMsgList(req)
-}
-func (p *grpcApiServer) ChatGetBoxMsgHist(ctx context.Context, req *ChatGetBoxMsgHistReq) (*ChatGetBoxMsgHistRes, error) {
-	return p.Core.ChatGetBoxMsgHist(req)
-}
 func (p *grpcApiServer) ChatSendMsg(ctx context.Context, req *ChatSendMsgReq) (*ChatSendMsgRes, error) {
 	return p.Core.ChatSendMsg(req)
 }
-func (p *grpcApiServer) ChatCreateGroupConv(ctx context.Context, req *ChatCreateGroupConvReq) (*ChatCreateGroupConvRes, error) {
-	return p.Core.ChatCreateGroupConv(req)
+func (p *grpcApiServer) ChatCreateGroup(ctx context.Context, req *ChatCreateGroupReq) (*ChatCreateGroupRes, error) {
+	return p.Core.ChatCreateGroup(req)
 }
-func (p *grpcApiServer) ChatGetGroupConvList(ctx context.Context, req *ChatGetGroupConvListReq) (*ChatGetGroupConvListRes, error) {
-	return p.Core.ChatGetGroupConvList(req)
+func (p *grpcApiServer) ChatGetGroupList(ctx context.Context, req *ChatGetGroupListReq) (*ChatGetGroupListRes, error) {
+	return p.Core.ChatGetGroupList(req)
+}
+func (p *grpcApiServer) GetUpdateList(ctx context.Context, req *GetUpdateListReq) (*GetUpdateListRes, error) {
+	return p.Core.GetUpdateList(req)
 }
 
 func (p *ModApi) StartRpcServer() (error) {

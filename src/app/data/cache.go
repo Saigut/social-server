@@ -270,41 +270,6 @@ func (p *Cache) ClearCacheChatMsgList(uid uint64, seqId uint64) (err error) {
     return p.client.Del(ctx, key).Err()
 }
 
-func (p *Cache) GetConvMsgHist(peerId types.PeerId) (msgs []types.ChatMsg, err error) {
-    ctx := context.Background()
-    key := fmt.Sprintf("conv:msghist:%s", peerId)
-    result, err := p.client.Get(ctx, key).Result()
-    if err == redis.Nil {
-        return nil, &CacheNotFoundError{Key: key}
-    } else if err != nil {
-        return nil, err
-    }
-
-    // 反序列化
-    err = json.Unmarshal([]byte(result), &msgs)
-    if err != nil {
-        return nil, err
-    }
-
-    return msgs, nil
-}
-
-func (p *Cache) CacheConvMsgHist(peerId types.PeerId, msgs []types.ChatMsg) (err error) {
-    ctx := context.Background()
-    key := fmt.Sprintf("conv:msghist:%s", peerId)
-    data, err := json.Marshal(msgs)
-    if err != nil {
-        return err
-    }
-    return p.client.Set(ctx, key, data, 24*time.Hour).Err()
-}
-
-func (p *Cache) ClearCacheConvMsgHist(peerId types.PeerId) (err error) {
-    ctx := context.Background()
-    key := fmt.Sprintf("conv:msghist:%s", peerId)
-    return p.client.Del(ctx, key).Err()
-}
-
 func (p *Cache) SendMsg(peerId types.PeerId, msg types.ChatMsg) (err error) {
     // 具体实现根据业务逻辑
     return errors.New("method not implemented")

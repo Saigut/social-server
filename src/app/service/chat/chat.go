@@ -95,31 +95,6 @@ func (p *Chat) GetChatMsgList(uid uint64, seqId uint64) (msgList []types.ChatMsg
 	return msgList, nil
 }
 
-func (p *Chat) GetConvMsgHist(peerId types.PeerId) (msgList []types.ChatMsg, err error) {
-	// 从缓存中获取
-	msgList, err = p.cache.GetConvMsgHist(peerId)
-	if err != nil {
-		_, ok := err.(*data.CacheNotFoundError)
-		if !ok {
-			return nil, err
-		}
-	} else {
-		return msgList, nil
-	}
-
-	// 若无缓存，从数据库获取，并更新缓存
-	msgList, err = p.storage.GetConvMsgHist(peerId)
-	if err != nil {
-		return nil, err
-	}
-	err = p.cache.CacheConvMsgHist(peerId, msgList)
-	if err != nil {
-		return nil, err
-	}
-
-	return msgList, nil
-}
-
 // 通知用户的所有 cond 停止等待
 func (p *Chat) notifyAUserCond(uid uint64) {
 	us := p.getUserSync(uid)
@@ -128,30 +103,31 @@ func (p *Chat) notifyAUserCond(uid uint64) {
 	us.cond.Broadcast()
 }
 
-func (p *Chat) SendMsg(peerId types.PeerId, msg types.ChatMsg) (err error) {
+func (p *Chat) SendMsg(convMsg types.ChatMsgOfConv) (err error) {
 
 	// 更新数据库
-	err = p.storage.SendMsg(peerId, msg)
+	err = p.storage.SendMsg(convMsg)
 	if err != nil {
 		return fmt.Errorf("storage.SendMsg: %w", err)
 	}
 
-	// 通知 peer channel
-	if peerId.PeerIdType == types.EmPeerIdType_PeerUid {
-		Log.Debug("notifying peer channel. peer uid: %v...", peerId.PeerUid)
-		p.notifyAUserCond(peerId.PeerUid)
-
+	// 通知接收者和发送者
+	if convMsg.ReceiverId.PeerIdType == types.EmPeerIdType_Uid {
+		Log.Debug("notify user: %v", convMsg.ReceiverId.Uid)
+		p.notifyAUserCond(convMsg.ReceiverId.Uid)
+		Log.Debug("notify user: %v", convMsg.Msg.SenderUid)
+		p.notifyAUserCond(convMsg.Msg.SenderUid)
 
 	} else {
 		// 获取群员列表
-		memberList, err := p.storage.GetGroupMemberList(peerId.GroupConvId)
+		memberList, err := p.storage.GetGroupMemberList(convMsg.ReceiverId.GroupId)
 		if err != nil {
 			return fmt.Errorf("storage.GetGroupMemberList: %w", err)
 		}
 		// 遍历群员列表并通知
 		for _, uid := range memberList {
-			Log.Debug("notifying peer channel. peer uid: %v...", uid)
-			p.notifyAUserCond(peerId.PeerUid)
+			Log.Debug("notify group member: %v", uid)
+			p.notifyAUserCond(convMsg.ReceiverId.Uid)
 		}
 	}
 
