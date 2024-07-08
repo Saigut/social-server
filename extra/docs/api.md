@@ -1,4 +1,4 @@
-api
+API
 ===
 
-Refer to `api.proto` files.
+Refer to [api.proto](../protos/api.proto) file.
