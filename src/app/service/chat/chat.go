@@ -1,93 +1,134 @@
 package chat
 
 import (
-	"errors"
+	"context"
 	"fmt"
+	"log"
+	"os"
 	"social_server/src/app/common/types"
 	"social_server/src/app/data"
+	gen_grpc "social_server/src/gen/grpc"
 	. "social_server/src/utils/log"
+	"strconv"
 	"sync"
+	"github.com/go-redis/redis/v8"
+	"time"
 )
 
 type UserSync struct {
-	mu   sync.Mutex
-	cond *sync.Cond
+	condCh     chan struct{}
+	channelName string
 }
 
 type Chat struct {
 	storage *data.DB
 	cache *data.Cache
-
-	// 用于通知新消息的channel。结构：map: uid -> ch
-	//userChans map[uint64]chan struct{}
-
 	userSyncs map[uint64]*UserSync
 	rwMu      sync.RWMutex
+	redisClient *redis.Client
 }
 
 func NewChat(storage *data.DB, cache *data.Cache) *Chat {
+	redisHost := os.Getenv("REDIS_HOST")
+	redisPort := os.Getenv("REDIS_PORT")
+	redisPassword := os.Getenv("REDIS_PASSWORD")
+	redisDB := os.Getenv("REDIS_DB")
+
+	if redisPort == "" {
+		redisPort = "6379"
+	}
+	redisDBInt := 0
+	if redisDB != "" {
+		var err error
+		redisDBInt, err = strconv.Atoi(redisDB)
+		if err != nil {
+			log.Fatalf("Invalid REDIS_DB value: %v", err)
+		}
+	}
+
+	redisClient := redis.NewClient(&redis.Options{
+		Addr:     fmt.Sprintf("%s:%s", redisHost, redisPort),
+		Password: redisPassword,
+		DB:       redisDBInt,
+	})
+
+	// 尝试连接并发送 PING 命令
+	var ctx = context.Background()
+	err := redisClient.Ping(ctx).Err()
+	if err != nil {
+		log.Fatalf("Failed to connect to Redis: %v", err)
+	} else {
+		Log.Info("Connected to Redis successfully!")
+	}
+
 	return &Chat{
 		storage: storage,
 		cache: cache,
 		//userChans: make(map[uint64]chan struct{}),
 		userSyncs: make(map[uint64]*UserSync),
+		redisClient: redisClient,
 	}
 }
 
-func (c *Chat) getUserSync(uid uint64) *UserSync {
-	// 尝试在无锁的情况下读取
-	c.rwMu.RLock()
-	us, exists := c.userSyncs[uid]
+func (p *Chat) getUserSync(uid uint64) (*UserSync) {
+	p.rwMu.RLock()
+	us, exists := p.userSyncs[uid]
+	p.rwMu.RUnlock()
 	if exists {
 		return us
 	}
-	c.rwMu.RUnlock()
 
-	// 如果不存在，再加锁进行写操作
-	c.rwMu.Lock()
-	defer c.rwMu.Unlock()
+	p.rwMu.Lock()
+	defer p.rwMu.Unlock()
 
 	// 双重检查
-	us, exists = c.userSyncs[uid]
+	us, exists = p.userSyncs[uid]
 	if exists {
 		return us
 	}
 
+	channelName := fmt.Sprintf("user_channel_%d", uid)
 	us = &UserSync{}
-	us.cond = sync.NewCond(&us.mu)
-	c.userSyncs[uid] = us
+	us = &UserSync{
+		condCh:     make(chan struct{}),
+		channelName: channelName,
+	}
+	p.userSyncs[uid] = us
 
 	return us
 }
 
-func (p *Chat) WaitForNewMessage(uid uint64) {
+func (p *Chat) waitForNewMessage(uid uint64) {
 	us := p.getUserSync(uid)
-	us.mu.Lock()
-	defer us.mu.Unlock()
-	us.cond.Wait()
+	pubsub := p.redisClient.Subscribe(context.Background(), us.channelName)
+	defer pubsub.Close()
+
+	ch := pubsub.Channel()
+	select {
+	case <-ch:
+		// 收到新消息通知
+	case <-time.After(120 * time.Second):
+		// 超时退出
+	}
 }
 
 func (p *Chat) GetChatMsgList(uid uint64, seqId uint64) (msgList []types.ChatMsgOfConv, err error) {
 
-	msgList, err = p.storage.GetChatMsgList(uid, seqId)
+	msgList, err = p.storage.ChatGetMsgList(uid, seqId)
 	if err == nil {
-		// 打印 msgList 长度
-		Log.Debug("msgList len: %v", len(msgList))
 		if len(msgList) > 0 {
 			return msgList, nil
 		}
 	} else {
 		if err.Error() != "no new msg" {
-			return nil, fmt.Errorf("GetChatMsgList: %w", err)
+			return nil, fmt.Errorf("ChatGetMsgList: %w", err)
 		}
 	}
 
 	// 如果 seqId 是最新的，则等待
-	Log.Debug("uid: %v", uid)
-	p.WaitForNewMessage(uid)
-	Log.Debug("new msg")
+	p.waitForNewMessage(uid)
 
-	msgList, err = p.storage.GetChatMsgList(uid, seqId)
+	msgList, err = p.storage.ChatGetMsgList(uid, seqId)
 	if err != nil {
 		return nil, err
 	}
@@ -95,102 +136,81 @@ func (p *Chat) GetChatMsgList(uid uint64, seqId uint64) (msgList []types.ChatMsg
 	return msgList, nil
 }
 
-// 通知用户的所有 cond 停止等待
-func (p *Chat) notifyAUserCond(uid uint64) {
+func (p *Chat) NotifyAUserCond(uid uint64) {
 	us := p.getUserSync(uid)
-	us.mu.Lock()
-	defer us.mu.Unlock()
-	us.cond.Broadcast()
+	p.redisClient.Publish(context.Background(), us.channelName, "new message")
 }
 
 func (p *Chat) SendMsg(convMsg types.ChatMsgOfConv) (err error) {
+	// 判断消息类型
+	switch convMsg.Msg.MsgType {
+	case gen_grpc.ChatMsgType_emChatMsgType_MarkRead:
+		if convMsg.ReceiverId.PeerIdType == types.EmPeerIdType_Uid {
+			err = p.storage.ChatMarkRead(convMsg.Msg.SenderUid, convMsg.ReceiverId.Uid, convMsg.Msg.ReadMsgId)
+			if err != nil {
+				return fmt.Errorf("ChatMarkRead: %w", err)
+			}
+		} else {
+			err = p.storage.ChatReadGroupMsg(convMsg.Msg.SenderUid, convMsg.ReceiverId.GroupId, convMsg.Msg.ReadMsgId)
+			if err != nil {
+				return fmt.Errorf("ChatReadGroupMsg: %w", err)
+			}
+		}
+	default:
+		// do nothing
+	}
 
 	// 更新数据库
-	err = p.storage.SendMsg(convMsg)
+	err = p.storage.ChatSendMsg(convMsg)
 	if err != nil {
-		return fmt.Errorf("storage.SendMsg: %w", err)
+		return fmt.Errorf("ChatSendMsg: %w", err)
 	}
 
 	// 通知接收者和发送者
 	if convMsg.ReceiverId.PeerIdType == types.EmPeerIdType_Uid {
-		Log.Debug("notify user: %v", convMsg.ReceiverId.Uid)
-		p.notifyAUserCond(convMsg.ReceiverId.Uid)
-		Log.Debug("notify user: %v", convMsg.Msg.SenderUid)
-		p.notifyAUserCond(convMsg.Msg.SenderUid)
+		p.NotifyAUserCond(convMsg.ReceiverId.Uid)
+		p.NotifyAUserCond(convMsg.Msg.SenderUid)
 
 	} else {
 		// 获取群员列表
-		memberList, err := p.storage.GetGroupMemberList(convMsg.ReceiverId.GroupId)
+		memberList, err := p.storage.GroupGetMemList(convMsg.ReceiverId.GroupId)
 		if err != nil {
-			return fmt.Errorf("storage.GetGroupMemberList: %w", err)
+			return fmt.Errorf("GroupGetMemList: %w", err)
 		}
 		// 遍历群员列表并通知
 		for _, uid := range memberList {
-			Log.Debug("notify group member: %v", uid)
-			p.notifyAUserCond(convMsg.ReceiverId.Uid)
+			p.NotifyAUserCond(uid)
 		}
 	}
 
 	return nil
 }
 
-func (p *Chat) CreateGroupConv(uid uint64) (ConvId uint64, err error) {
-	// 更新数据库
-	ConvId, err = p.storage.CreateGroupConv(uid)
+func (p *Chat) SendMsgToUser(uid uint64, convMsg types.ChatMsgOfConv) (err error) {
+	err = p.storage.ChatSendMsgToUser(uid, convMsg)
 	if err != nil {
-		return 0, err
+		return fmt.Errorf("ChatSendMsgToUser: %w", err)
 	}
-	return ConvId, nil
+	p.NotifyAUserCond(uid)
+	return nil
 }
 
-func (p *Chat) GetGroupConvList(uid uint64) (ConvIdList []uint64, err error) {
-	// 从缓存中获取
-	ConvIdList, err = p.cache.GetGroupConvList(uid)
+func (p *Chat) SendMsgToAdmins(convMsg types.ChatMsgOfConv) (err error) {
+	err = p.storage.ChatSendMsgToAdmins(convMsg)
 	if err != nil {
-		_, ok := err.(*data.CacheNotFoundError)
-		if !ok {
-			return nil, err
-		}
-	} else {
-		return ConvIdList, nil
+		return fmt.Errorf("ChatSendMsgToAdmins: %w", err)
 	}
-
-	// 若无缓存，从数据库获取，并更新缓存
-	ConvIdList, err = p.storage.GetGroupConvList(uid)
+	// 获取管理员列表
+	admins, err := p.storage.GroupGetAdminList(convMsg.ReceiverId.GroupId)
 	if err != nil {
-		return nil, err
+		return fmt.Errorf("GroupGetAdminList: %w", err)
 	}
-
-	err = p.cache.CacheGroupConvList(uid, ConvIdList)
-	if err != nil {
-		return nil, err
+	for _, uid := range admins {
+		p.NotifyAUserCond(uid)
 	}
-
-	return nil, errors.New("method not implemented")
+	return nil
 }
 
-func (p *Chat) IsUserInConv(convId uint64, uid uint64) (inConv bool, err error) {
-	// 检查缓存
-	inConv, err = p.cache.IsUserInConv(convId, uid)
-	if err != nil {
-		_, ok := err.(*data.CacheNotFoundError)
-		if !ok {
-			return false, err
-		}
-	} else {
-		return inConv, nil
-	}
-
-	// 若无缓存，从数据库获取，并更新缓存
-	inConv, err = p.storage.IsUserInGroup(convId, uid)
-	if err != nil {
-		return false, err
-	}
-
-	err = p.cache.CacheIsUserInConv(convId, uid, inConv)
-	if err != nil {
-		return false, err
-	}
-
-	return inConv, nil
+func (p *Chat) AllocateGroupSeqId(groupId uint64) (seqId uint64, err error) {
+	return p.storage.AllocateGroupSeqId(groupId)
 }

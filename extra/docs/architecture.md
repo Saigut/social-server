@@ -4,17 +4,17 @@ Social Server Architecture
 # The whole architecture
 ```
 --------------------------
-| Gateway | Gateway | ...
+| Load Balancer |
 --------------------------
 | Service | Service | ...
 --------------------------
-| Storage | Storage | ...
+| Data layer |
 --------------------------
 ```
 
 # Service
 ``` 
-------------------------------------------------
-| Access | API | Chat | Post | User Management |
-------------------------------------------------
+--------------------------------------------------------------
+| API | Core | Chat | Session Management | User Management |
+--------------------------------------------------------------
 ```

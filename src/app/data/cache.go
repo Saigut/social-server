@@ -55,7 +55,7 @@ func NewCache() *Cache {
         }
     }
 
-    rdb := redis.NewClient(&redis.Options{
+    redisClient := redis.NewClient(&redis.Options{
         Addr:     fmt.Sprintf("%s:%s", redisHost, redisPort),
         Password: redisPassword,
         DB:       redisDBInt,
@@ -63,18 +63,17 @@ func NewCache() *Cache {
 
     // 尝试连接并发送 PING 命令
     var ctx = context.Background()
-    err := rdb.Ping(ctx).Err()
+    err := redisClient.Ping(ctx).Err()
     if err != nil {
-        Log.Debug("Failed to connect to Redis: %v", err)
+        log.Fatalf("Failed to connect to Redis: %v", err)
     } else {
-        Log.Debug("Connected to Redis successfully!")
+        Log.Info("Connected to Redis successfully!")
     }
 
-    return &Cache{client: rdb}
+    return &Cache{client: redisClient}
 }
 
-// Session
-func GenerateSessionID(username string) (string, error) {
+func GenerateSessionID(uid uint64) (string, error) {
     // 获取当前时间戳
     timestamp := time.Now().UnixNano()
 
@@ -87,7 +86,7 @@ func GenerateSessionID(username string) (string, error) {
     }
 
     // 构建 session ID 原始数据
-    data := fmt.Sprintf("%s:%d:%s", username, timestamp, hex.EncodeToString(randomBytes))
+    data := fmt.Sprintf("%d:%d:%s", uid, timestamp, hex.EncodeToString(randomBytes))
 
     // 计算 SHA-256 哈希值
     hash := sha256.Sum256([]byte(data))
@@ -98,18 +97,28 @@ func GenerateSessionID(username string) (string, error) {
     return sessionID, nil
 }
 
-func (p *Cache) CreateSess(username string, uid uint64, timeoutTsS uint64) (sessId types.SessId, err error) {
+func (p *Cache) CreateSess(username string, uid uint64, expireAfterSecs uint64) (sessId types.SessId, err error) {
     ctx := context.Background()
 
     var sessIdStr string
-    sessIdStr, err = GenerateSessionID(username)
+    sessIdStr, err = GenerateSessionID(uid)
     if err != nil {
         return "", err
     }
+
+    sessionKey := fmt.Sprintf("session:%s", sessIdStr)
+    exists, err := p.client.Exists(ctx, sessionKey).Result()
+    if err != nil {
+        return "", fmt.Errorf("failed to check session existence: %w", err)
+    }
+    if exists > 0 {
+        return "", fmt.Errorf("session ID already exists")
+    }
+
     sessId = types.SessId(sessIdStr)
 
     createdAt := uint64(time.Now().Unix())
-    expiresAt := createdAt + timeoutTsS
+    expiresAt := createdAt + expireAfterSecs
 
     // 会话上下文
     sessCtx := types.SessCtx{
@@ -120,9 +129,7 @@ func (p *Cache) CreateSess(username string, uid uint64, timeoutTsS uint64) (sess
         ExpiresAt: expiresAt,
     }
 
-    // 会话 key
-    sessionKey := fmt.Sprintf("session:%s", sessIdStr)
-    userSessionsKey := fmt.Sprintf("user:%s:sessions", username)
+    userSessionsKey := fmt.Sprintf("user:%v:sessions", uid)
 
     // 使用事务创建会话并关联到用户
     _, err = p.client.TxPipelined(ctx, func(pipe redis.Pipeliner) error {
@@ -133,8 +140,8 @@ func (p *Cache) CreateSess(username string, uid uint64, timeoutTsS uint64) (sess
             "ExpiresAt": sessCtx.ExpiresAt,
         })
         pipe.SAdd(ctx, userSessionsKey, sessIdStr)
-        pipe.Expire(ctx, sessionKey, time.Duration(timeoutTsS)*time.Second) // 设置会话过期时间
-        pipe.Expire(ctx, userSessionsKey, time.Duration(timeoutTsS)*time.Second) // 设置用户会话集合过期时间
+        pipe.Expire(ctx, sessionKey, time.Duration(expireAfterSecs)*time.Second)      // 设置会话过期时间
+        pipe.Expire(ctx, userSessionsKey, time.Duration(expireAfterSecs)*time.Second) // 设置用户会话集合过期时间
         return nil
     })
 
@@ -170,9 +177,60 @@ func (p *Cache) GetSessCtx(sessId types.SessId) (sessCtx *types.SessCtx, err err
     }, nil
 }
 
-func (p *Cache) GetSessCtxByUsername(username string) (sessCtx *types.SessCtx, err error) {
+func (p *Cache) RenewSessCtx(sessCtx *types.SessCtx, expireAfterSecs uint64) (err error) {
+    if expireAfterSecs == 0 {
+        return fmt.Errorf("expireAfterSecs must be greater than zero")
+    }
+
+    ctx := context.Background()
+
+    // 计算新的过期时间
+    currentTime := uint64(time.Now().Unix())
+    newExpiresAt := currentTime + expireAfterSecs
+
+    // 获取会话键和用户会话键
+    sessionKey := fmt.Sprintf("session:%s", sessCtx.SessId)
+    userSessionsKey := fmt.Sprintf("user:%v:sessions", sessCtx.Uid)
+
+    // 使用事务来更新会话信息和过期时间
+    _, err = p.client.TxPipelined(ctx, func(pipe redis.Pipeliner) error {
+        // 更新会话上下文中的过期时间
+        if err := pipe.HSet(ctx, sessionKey, "ExpiresAt", newExpiresAt).Err(); err != nil {
+            return fmt.Errorf("failed to set new expiration in session context: %w", err)
+        }
+        // 续期会话键
+        if err := pipe.Expire(ctx, sessionKey, time.Duration(expireAfterSecs)*time.Second).Err(); err != nil {
+            return fmt.Errorf("failed to expire session key: %w", err)
+        }
+        // 续期用户会话集合键
+        if err := pipe.Expire(ctx, userSessionsKey, time.Duration(expireAfterSecs)*time.Second).Err(); err != nil {
+            return fmt.Errorf("failed to expire user sessions key: %w", err)
+        }
+        return nil
+    })
+
+    if err != nil {
+        return fmt.Errorf("TxPipelined: %w", err)
+    }
+
+    return nil
+}
+
+func (p *Cache) RenewSessCtxBySessId(sessId types.SessId, expireAfterSecs uint64) error {
+    // 获取会话上下文
+    sessCtx, err := p.GetSessCtx(sessId)
+    if err != nil {
+        return fmt.Errorf("GetSessCtx: %v", err)
+    }
+    if sessCtx == nil {
+        return fmt.Errorf("session not found")
+    }
+    return p.RenewSessCtx(sessCtx, expireAfterSecs)
+}
+
+func (p *Cache) GetSessCtxByUid(uid uint64) (sessCtx *types.SessCtx, err error) {
     // 查找用户的会话集合 key
-    userSessionsKey := fmt.Sprintf("user:%s:sessions", username)
+    userSessionsKey := fmt.Sprintf("user:%v:sessions", uid)
 
     // 获取所有会话 ID
     sessIds, err := p.client.SMembers(context.Background(), userSessionsKey).Result()
@@ -180,7 +238,7 @@ func (p *Cache) GetSessCtxByUsername(username string) (sessCtx *types.SessCtx, e
         return nil, err
     }
     if len(sessIds) == 0 {
-        return nil, fmt.Errorf("no sessions found for user: %s", username)
+        return nil, fmt.Errorf("no sessions found for user: %s", uid)
     }
 
     for _, sessId := range sessIds {
@@ -197,7 +255,7 @@ func (p *Cache) GetSessCtxByUsername(username string) (sessCtx *types.SessCtx, e
         }
     }
 
-    return nil, fmt.Errorf("no active sessions found for user: %s", username)
+    return nil, fmt.Errorf("no active sessions found for user: %s", uid)
 }
 
 func (p *Cache) DeleteSess(sessId types.SessId) (err error) {
@@ -207,30 +265,60 @@ func (p *Cache) DeleteSess(sessId types.SessId) (err error) {
     // 获取会话数据
     sessionData, err := p.client.HGetAll(context.Background(), sessionKey).Result()
     if err != nil {
-        return err
+        return fmt.Errorf("HGetAll: %w", err)
     }
     if len(sessionData) == 0 {
         return fmt.Errorf("session not found")
     }
 
-    // 获取用户名
-    username := sessionData["Username"]
-    userSessionsKey := fmt.Sprintf("user:%s:sessions", username)
+    // 获取uid
+    uid := sessionData["Uid"]
+    userSessionsKey := fmt.Sprintf("user:%v:sessions", uid)
 
     // 删除会话和用户会话集合中的会话 ID
     _, err = p.client.TxPipelined(context.Background(), func(pipe redis.Pipeliner) error {
         pipe.Del(context.Background(), sessionKey)
-        pipe.SRem(context.Background(), userSessionsKey, sessId)
+        pipe.SRem(context.Background(), userSessionsKey, string(sessId))
         return nil
     })
 
     if err != nil {
-        return err
+        return fmt.Errorf("TxPipelined: %w", err)
     }
 
     return nil
 }
 
+func (p *Cache) DeleteUserSess(uid uint64) error {
+    ctx := context.Background()
+    userSessionsKey := fmt.Sprintf("user:%v:sessions", uid)
+
+    // 获取用户的所有会话ID
+    sessIds, err := p.client.SMembers(ctx, userSessionsKey).Result()
+    if err != nil {
+        return fmt.Errorf("SMembers: %w", err)
+    }
+
+    if len(sessIds) == 0 {
+        return fmt.Errorf("no sessions found for user %d", uid)
+    }
+
+    // 使用事务删除用户的所有会话
+    _, err = p.client.TxPipelined(ctx, func(pipe redis.Pipeliner) error {
+        for _, sessIdStr := range sessIds {
+            sessionKey := fmt.Sprintf("session:%s", sessIdStr)
+            pipe.Del(ctx, sessionKey) // 删除会话数据
+        }
+        pipe.Del(ctx, userSessionsKey) // 删除用户会话集合
+        return nil
+    })
+
+    if err != nil {
+        return fmt.Errorf("TxPipelined: %w", err)
+    }
+
+    return nil
+}
 
 // Chat
 func (p *Cache) GetChatMsgList(uid uint64, seqId uint64) (msgs []types.ChatMsgOfConv, err error) {
@@ -280,7 +368,7 @@ func (p *Cache) CreateGroupConv(uid uint64) (ConvId uint64, err error) {
     return 0, errors.New("method not implemented")
 }
 
-func (p *Cache) GetGroupConvList(uid uint64) (ConvIdList []uint64, err error) {
+func (p *Cache) GroupGetList(uid uint64) (ConvIdList []uint64, err error) {
     ctx := context.Background()
     key := fmt.Sprintf("group:convlist:%d", uid)
     result, err := p.client.Get(ctx, key).Result()
@@ -386,7 +474,7 @@ func (p *Cache) UserAuthenticate(param *types.UmUserAuthenticateParam) (pass boo
         }
 
         // 验证密码
-        if user.Passphase == param.Passphase {
+        if user.Password == param.Passphase {
             return true, nil
         } else {
             return false, nil
@@ -420,19 +508,19 @@ func (p *Cache) Unregister(param *types.UmUnregisterParam) (err error) {
     return errors.New("method not implemented")
 }
 
-func (p *Cache) AddFriends(param *types.UmAddFriendsParam) (err error) {
+func (p *Cache) AddContacts(param *types.UmContactAddRequestParam) (err error) {
     // 具体实现根据业务逻辑
     return errors.New("method not implemented")
 }
 
-func (p *Cache) DelFriends(param *types.UmDelFriendsParam) (err error) {
+func (p *Cache) DelContacts(param *types.UmDelContactsParam) (err error) {
     // 具体实现根据业务逻辑
     return errors.New("method not implemented")
 }
 
-func (p *Cache) GetFriendList(uid uint64) (friendsUid []uint64, err error) {
+func (p *Cache) GetContactList(uid uint64) (contactsUid []uint64, err error) {
     ctx := context.Background()
-    key := fmt.Sprintf("friend:list:%d", uid)
+    key := fmt.Sprintf("contact:list:%d", uid)
     result, err := p.client.Get(ctx, key).Result()
     if err == redis.Nil {
         return nil, &CacheNotFoundError{Key: key}
@@ -441,26 +529,26 @@ func (p *Cache) GetFriendList(uid uint64) (friendsUid []uint64, err error) {
     }
 
     // 反序列化
-    err = json.Unmarshal([]byte(result), &friendsUid)
+    err = json.Unmarshal([]byte(result), &contactsUid)
     if err != nil {
         return nil, err
     }
 
-    return friendsUid, nil
+    return contactsUid, nil
 }
 
-func (p *Cache) CacheFriendList(uid uint64, friendsUid []uint64) (err error) {
+func (p *Cache) CacheContactList(uid uint64, contactsUid []uint64) (err error) {
     ctx := context.Background()
-    key := fmt.Sprintf("friend:list:%d", uid)
-    data, err := json.Marshal(friendsUid)
+    key := fmt.Sprintf("contact:list:%d", uid)
+    data, err := json.Marshal(contactsUid)
     if err != nil {
         return err
     }
     return p.client.Set(ctx, key, data, 24*time.Hour).Err()
 }
 
-func (p *Cache) ClearCacheFriendList(uid uint64) (err error) {
+func (p *Cache) ClearCacheContactList(uid uint64) (err error) {
     ctx := context.Background()
-    key := fmt.Sprintf("friend:list:%d", uid)
+    key := fmt.Sprintf("contact:list:%d", uid)
     return p.client.Del(ctx, key).Err()
 }

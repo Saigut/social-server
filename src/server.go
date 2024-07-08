@@ -1,8 +1,8 @@
 package main
 
 import (
-	"social_server/src/app/api"
-	. "social_server/src/utils/log"
+    "social_server/src/app/service/api"
+    . "social_server/src/utils/log"
 )
 
 func main() {

@@ -28,13 +28,33 @@ type GrpcApiClient interface {
 	// 用户管理
 	UmRegister(ctx context.Context, in *UmRegisterReq, opts ...grpc.CallOption) (*UmRegisterRes, error)
 	UmUnregister(ctx context.Context, in *UmUnregisterReq, opts ...grpc.CallOption) (*UmUnregisterRes, error)
-	UmAddFriend(ctx context.Context, in *UmAddFriendReq, opts ...grpc.CallOption) (*UmAddFriendRes, error)
-	UmDelFriend(ctx context.Context, in *UmDelFriendReq, opts ...grpc.CallOption) (*UmDelFriendRes, error)
-	UmGetFriendList(ctx context.Context, in *UmGetFriendListReq, opts ...grpc.CallOption) (*UmGetFriendListRes, error)
+	UmUserUpdateInfo(ctx context.Context, in *UmUserUpdateInfoReq, opts ...grpc.CallOption) (*UmUserUpdateInfoRes, error)
+	// 联系人
+	UmContactGetList(ctx context.Context, in *UmContactGetListReq, opts ...grpc.CallOption) (*UmContactGetListRes, error)
+	UmContactGetInfo(ctx context.Context, in *UmContactGetInfoReq, opts ...grpc.CallOption) (*UmContactGetInfoRes, error)
+	UmContactFind(ctx context.Context, in *UmContactFindReq, opts ...grpc.CallOption) (*UmContactFindRes, error)
+	UmContactAddRequest(ctx context.Context, in *UmContactAddRequestReq, opts ...grpc.CallOption) (*UmContactAddRequestRes, error)
+	UmContactAccept(ctx context.Context, in *UmContactAcceptReq, opts ...grpc.CallOption) (*UmContactAcceptRes, error)
+	UmContactReject(ctx context.Context, in *UmContactRejectReq, opts ...grpc.CallOption) (*UmContactRejectRes, error)
+	UmContactDel(ctx context.Context, in *UmContactDelReq, opts ...grpc.CallOption) (*UmContactDelRes, error)
+	// 群组
+	UmGroupGetList(ctx context.Context, in *UmGroupGetListReq, opts ...grpc.CallOption) (*UmGroupGetListRes, error)
+	UmGroupGetInfo(ctx context.Context, in *UmGroupGetInfoReq, opts ...grpc.CallOption) (*UmGroupGetInfoRes, error)
+	UmGroupUpdateInfo(ctx context.Context, in *UmGroupUpdateInfoReq, opts ...grpc.CallOption) (*UmGroupUpdateInfoRes, error)
+	UmGroupFind(ctx context.Context, in *UmGroupFindReq, opts ...grpc.CallOption) (*UmGroupFindRes, error)
+	UmGroupCreate(ctx context.Context, in *UmGroupCreateReq, opts ...grpc.CallOption) (*UmGroupCreateRes, error)
+	UmGroupDelete(ctx context.Context, in *UmGroupDeleteReq, opts ...grpc.CallOption) (*UmGroupDeleteRes, error)
+	UmGroupGetMemList(ctx context.Context, in *UmGroupGetMemListReq, opts ...grpc.CallOption) (*UmGroupGetMemListRes, error)
+	UmGroupJoinRequest(ctx context.Context, in *UmGroupJoinRequestReq, opts ...grpc.CallOption) (*UmGroupJoinRequestRes, error)
+	UmGroupAccept(ctx context.Context, in *UmGroupAcceptReq, opts ...grpc.CallOption) (*UmGroupAcceptRes, error)
+	UmGroupReject(ctx context.Context, in *UmGroupRejectReq, opts ...grpc.CallOption) (*UmGroupRejectRes, error)
+	UmGroupLeave(ctx context.Context, in *UmGroupLeaveReq, opts ...grpc.CallOption) (*UmGroupLeaveRes, error)
+	UmGroupAddMem(ctx context.Context, in *UmGroupAddMemReq, opts ...grpc.CallOption) (*UmGroupAddMemRes, error)
+	UmGroupDelMem(ctx context.Context, in *UmGroupDelMemReq, opts ...grpc.CallOption) (*UmGroupDelMemRes, error)
+	UmGroupUpdateMem(ctx context.Context, in *UmGroupUpdateMemReq, opts ...grpc.CallOption) (*UmGroupUpdateMemRes, error)
 	// 聊天
 	ChatSendMsg(ctx context.Context, in *ChatSendMsgReq, opts ...grpc.CallOption) (*ChatSendMsgRes, error)
-	ChatCreateGroup(ctx context.Context, in *ChatCreateGroupReq, opts ...grpc.CallOption) (*ChatCreateGroupRes, error)
-	ChatGetGroupList(ctx context.Context, in *ChatGetGroupListReq, opts ...grpc.CallOption) (*ChatGetGroupListRes, error)
+	ChatMarkRead(ctx context.Context, in *ChatMarkReadReq, opts ...grpc.CallOption) (*ChatMarkReadRes, error)
 	// 更新事件
 	GetUpdateList(ctx context.Context, in *GetUpdateListReq, opts ...grpc.CallOption) (*GetUpdateListRes, error)
 }
@@ -83,27 +103,198 @@ func (c *grpcApiClient) UmUnregister(ctx context.Context, in *UmUnregisterReq, o
 	return out, nil
 }
 
-func (c *grpcApiClient) UmAddFriend(ctx context.Context, in *UmAddFriendReq, opts ...grpc.CallOption) (*UmAddFriendRes, error) {
-	out := new(UmAddFriendRes)
-	err := c.cc.Invoke(ctx, "/gen_grpc.GrpcApi/UmAddFriend", in, out, opts...)
+func (c *grpcApiClient) UmUserUpdateInfo(ctx context.Context, in *UmUserUpdateInfoReq, opts ...grpc.CallOption) (*UmUserUpdateInfoRes, error) {
+	out := new(UmUserUpdateInfoRes)
+	err := c.cc.Invoke(ctx, "/gen_grpc.GrpcApi/UmUserUpdateInfo", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *grpcApiClient) UmDelFriend(ctx context.Context, in *UmDelFriendReq, opts ...grpc.CallOption) (*UmDelFriendRes, error) {
-	out := new(UmDelFriendRes)
-	err := c.cc.Invoke(ctx, "/gen_grpc.GrpcApi/UmDelFriend", in, out, opts...)
+func (c *grpcApiClient) UmContactGetList(ctx context.Context, in *UmContactGetListReq, opts ...grpc.CallOption) (*UmContactGetListRes, error) {
+	out := new(UmContactGetListRes)
+	err := c.cc.Invoke(ctx, "/gen_grpc.GrpcApi/UmContactGetList", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *grpcApiClient) UmGetFriendList(ctx context.Context, in *UmGetFriendListReq, opts ...grpc.CallOption) (*UmGetFriendListRes, error) {
-	out := new(UmGetFriendListRes)
-	err := c.cc.Invoke(ctx, "/gen_grpc.GrpcApi/UmGetFriendList", in, out, opts...)
+func (c *grpcApiClient) UmContactGetInfo(ctx context.Context, in *UmContactGetInfoReq, opts ...grpc.CallOption) (*UmContactGetInfoRes, error) {
+	out := new(UmContactGetInfoRes)
+	err := c.cc.Invoke(ctx, "/gen_grpc.GrpcApi/UmContactGetInfo", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *grpcApiClient) UmContactFind(ctx context.Context, in *UmContactFindReq, opts ...grpc.CallOption) (*UmContactFindRes, error) {
+	out := new(UmContactFindRes)
+	err := c.cc.Invoke(ctx, "/gen_grpc.GrpcApi/UmContactFind", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *grpcApiClient) UmContactAddRequest(ctx context.Context, in *UmContactAddRequestReq, opts ...grpc.CallOption) (*UmContactAddRequestRes, error) {
+	out := new(UmContactAddRequestRes)
+	err := c.cc.Invoke(ctx, "/gen_grpc.GrpcApi/UmContactAddRequest", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *grpcApiClient) UmContactAccept(ctx context.Context, in *UmContactAcceptReq, opts ...grpc.CallOption) (*UmContactAcceptRes, error) {
+	out := new(UmContactAcceptRes)
+	err := c.cc.Invoke(ctx, "/gen_grpc.GrpcApi/UmContactAccept", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *grpcApiClient) UmContactReject(ctx context.Context, in *UmContactRejectReq, opts ...grpc.CallOption) (*UmContactRejectRes, error) {
+	out := new(UmContactRejectRes)
+	err := c.cc.Invoke(ctx, "/gen_grpc.GrpcApi/UmContactReject", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *grpcApiClient) UmContactDel(ctx context.Context, in *UmContactDelReq, opts ...grpc.CallOption) (*UmContactDelRes, error) {
+	out := new(UmContactDelRes)
+	err := c.cc.Invoke(ctx, "/gen_grpc.GrpcApi/UmContactDel", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *grpcApiClient) UmGroupGetList(ctx context.Context, in *UmGroupGetListReq, opts ...grpc.CallOption) (*UmGroupGetListRes, error) {
+	out := new(UmGroupGetListRes)
+	err := c.cc.Invoke(ctx, "/gen_grpc.GrpcApi/UmGroupGetList", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *grpcApiClient) UmGroupGetInfo(ctx context.Context, in *UmGroupGetInfoReq, opts ...grpc.CallOption) (*UmGroupGetInfoRes, error) {
+	out := new(UmGroupGetInfoRes)
+	err := c.cc.Invoke(ctx, "/gen_grpc.GrpcApi/UmGroupGetInfo", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *grpcApiClient) UmGroupUpdateInfo(ctx context.Context, in *UmGroupUpdateInfoReq, opts ...grpc.CallOption) (*UmGroupUpdateInfoRes, error) {
+	out := new(UmGroupUpdateInfoRes)
+	err := c.cc.Invoke(ctx, "/gen_grpc.GrpcApi/UmGroupUpdateInfo", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *grpcApiClient) UmGroupFind(ctx context.Context, in *UmGroupFindReq, opts ...grpc.CallOption) (*UmGroupFindRes, error) {
+	out := new(UmGroupFindRes)
+	err := c.cc.Invoke(ctx, "/gen_grpc.GrpcApi/UmGroupFind", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *grpcApiClient) UmGroupCreate(ctx context.Context, in *UmGroupCreateReq, opts ...grpc.CallOption) (*UmGroupCreateRes, error) {
+	out := new(UmGroupCreateRes)
+	err := c.cc.Invoke(ctx, "/gen_grpc.GrpcApi/UmGroupCreate", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *grpcApiClient) UmGroupDelete(ctx context.Context, in *UmGroupDeleteReq, opts ...grpc.CallOption) (*UmGroupDeleteRes, error) {
+	out := new(UmGroupDeleteRes)
+	err := c.cc.Invoke(ctx, "/gen_grpc.GrpcApi/UmGroupDelete", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *grpcApiClient) UmGroupGetMemList(ctx context.Context, in *UmGroupGetMemListReq, opts ...grpc.CallOption) (*UmGroupGetMemListRes, error) {
+	out := new(UmGroupGetMemListRes)
+	err := c.cc.Invoke(ctx, "/gen_grpc.GrpcApi/UmGroupGetMemList", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *grpcApiClient) UmGroupJoinRequest(ctx context.Context, in *UmGroupJoinRequestReq, opts ...grpc.CallOption) (*UmGroupJoinRequestRes, error) {
+	out := new(UmGroupJoinRequestRes)
+	err := c.cc.Invoke(ctx, "/gen_grpc.GrpcApi/UmGroupJoinRequest", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *grpcApiClient) UmGroupAccept(ctx context.Context, in *UmGroupAcceptReq, opts ...grpc.CallOption) (*UmGroupAcceptRes, error) {
+	out := new(UmGroupAcceptRes)
+	err := c.cc.Invoke(ctx, "/gen_grpc.GrpcApi/UmGroupAccept", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *grpcApiClient) UmGroupReject(ctx context.Context, in *UmGroupRejectReq, opts ...grpc.CallOption) (*UmGroupRejectRes, error) {
+	out := new(UmGroupRejectRes)
+	err := c.cc.Invoke(ctx, "/gen_grpc.GrpcApi/UmGroupReject", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *grpcApiClient) UmGroupLeave(ctx context.Context, in *UmGroupLeaveReq, opts ...grpc.CallOption) (*UmGroupLeaveRes, error) {
+	out := new(UmGroupLeaveRes)
+	err := c.cc.Invoke(ctx, "/gen_grpc.GrpcApi/UmGroupLeave", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *grpcApiClient) UmGroupAddMem(ctx context.Context, in *UmGroupAddMemReq, opts ...grpc.CallOption) (*UmGroupAddMemRes, error) {
+	out := new(UmGroupAddMemRes)
+	err := c.cc.Invoke(ctx, "/gen_grpc.GrpcApi/UmGroupAddMem", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *grpcApiClient) UmGroupDelMem(ctx context.Context, in *UmGroupDelMemReq, opts ...grpc.CallOption) (*UmGroupDelMemRes, error) {
+	out := new(UmGroupDelMemRes)
+	err := c.cc.Invoke(ctx, "/gen_grpc.GrpcApi/UmGroupDelMem", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *grpcApiClient) UmGroupUpdateMem(ctx context.Context, in *UmGroupUpdateMemReq, opts ...grpc.CallOption) (*UmGroupUpdateMemRes, error) {
+	out := new(UmGroupUpdateMemRes)
+	err := c.cc.Invoke(ctx, "/gen_grpc.GrpcApi/UmGroupUpdateMem", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -119,18 +310,9 @@ func (c *grpcApiClient) ChatSendMsg(ctx context.Context, in *ChatSendMsgReq, opt
 	return out, nil
 }
 
-func (c *grpcApiClient) ChatCreateGroup(ctx context.Context, in *ChatCreateGroupReq, opts ...grpc.CallOption) (*ChatCreateGroupRes, error) {
-	out := new(ChatCreateGroupRes)
-	err := c.cc.Invoke(ctx, "/gen_grpc.GrpcApi/ChatCreateGroup", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *grpcApiClient) ChatGetGroupList(ctx context.Context, in *ChatGetGroupListReq, opts ...grpc.CallOption) (*ChatGetGroupListRes, error) {
-	out := new(ChatGetGroupListRes)
-	err := c.cc.Invoke(ctx, "/gen_grpc.GrpcApi/ChatGetGroupList", in, out, opts...)
+func (c *grpcApiClient) ChatMarkRead(ctx context.Context, in *ChatMarkReadReq, opts ...grpc.CallOption) (*ChatMarkReadRes, error) {
+	out := new(ChatMarkReadRes)
+	err := c.cc.Invoke(ctx, "/gen_grpc.GrpcApi/ChatMarkRead", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -156,13 +338,33 @@ type GrpcApiServer interface {
 	// 用户管理
 	UmRegister(context.Context, *UmRegisterReq) (*UmRegisterRes, error)
 	UmUnregister(context.Context, *UmUnregisterReq) (*UmUnregisterRes, error)
-	UmAddFriend(context.Context, *UmAddFriendReq) (*UmAddFriendRes, error)
-	UmDelFriend(context.Context, *UmDelFriendReq) (*UmDelFriendRes, error)
-	UmGetFriendList(context.Context, *UmGetFriendListReq) (*UmGetFriendListRes, error)
+	UmUserUpdateInfo(context.Context, *UmUserUpdateInfoReq) (*UmUserUpdateInfoRes, error)
+	// 联系人
+	UmContactGetList(context.Context, *UmContactGetListReq) (*UmContactGetListRes, error)
+	UmContactGetInfo(context.Context, *UmContactGetInfoReq) (*UmContactGetInfoRes, error)
+	UmContactFind(context.Context, *UmContactFindReq) (*UmContactFindRes, error)
+	UmContactAddRequest(context.Context, *UmContactAddRequestReq) (*UmContactAddRequestRes, error)
+	UmContactAccept(context.Context, *UmContactAcceptReq) (*UmContactAcceptRes, error)
+	UmContactReject(context.Context, *UmContactRejectReq) (*UmContactRejectRes, error)
+	UmContactDel(context.Context, *UmContactDelReq) (*UmContactDelRes, error)
+	// 群组
+	UmGroupGetList(context.Context, *UmGroupGetListReq) (*UmGroupGetListRes, error)
+	UmGroupGetInfo(context.Context, *UmGroupGetInfoReq) (*UmGroupGetInfoRes, error)
+	UmGroupUpdateInfo(context.Context, *UmGroupUpdateInfoReq) (*UmGroupUpdateInfoRes, error)
+	UmGroupFind(context.Context, *UmGroupFindReq) (*UmGroupFindRes, error)
+	UmGroupCreate(context.Context, *UmGroupCreateReq) (*UmGroupCreateRes, error)
+	UmGroupDelete(context.Context, *UmGroupDeleteReq) (*UmGroupDeleteRes, error)
+	UmGroupGetMemList(context.Context, *UmGroupGetMemListReq) (*UmGroupGetMemListRes, error)
+	UmGroupJoinRequest(context.Context, *UmGroupJoinRequestReq) (*UmGroupJoinRequestRes, error)
+	UmGroupAccept(context.Context, *UmGroupAcceptReq) (*UmGroupAcceptRes, error)
+	UmGroupReject(context.Context, *UmGroupRejectReq) (*UmGroupRejectRes, error)
+	UmGroupLeave(context.Context, *UmGroupLeaveReq) (*UmGroupLeaveRes, error)
+	UmGroupAddMem(context.Context, *UmGroupAddMemReq) (*UmGroupAddMemRes, error)
+	UmGroupDelMem(context.Context, *UmGroupDelMemReq) (*UmGroupDelMemRes, error)
+	UmGroupUpdateMem(context.Context, *UmGroupUpdateMemReq) (*UmGroupUpdateMemRes, error)
 	// 聊天
 	ChatSendMsg(context.Context, *ChatSendMsgReq) (*ChatSendMsgRes, error)
-	ChatCreateGroup(context.Context, *ChatCreateGroupReq) (*ChatCreateGroupRes, error)
-	ChatGetGroupList(context.Context, *ChatGetGroupListReq) (*ChatGetGroupListRes, error)
+	ChatMarkRead(context.Context, *ChatMarkReadReq) (*ChatMarkReadRes, error)
 	// 更新事件
 	GetUpdateList(context.Context, *GetUpdateListReq) (*GetUpdateListRes, error)
 	mustEmbedUnimplementedGrpcApiServer()
@@ -184,23 +386,77 @@ func (UnimplementedGrpcApiServer) UmRegister(context.Context, *UmRegisterReq) (*
 func (UnimplementedGrpcApiServer) UmUnregister(context.Context, *UmUnregisterReq) (*UmUnregisterRes, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UmUnregister not implemented")
 }
-func (UnimplementedGrpcApiServer) UmAddFriend(context.Context, *UmAddFriendReq) (*UmAddFriendRes, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method UmAddFriend not implemented")
+func (UnimplementedGrpcApiServer) UmUserUpdateInfo(context.Context, *UmUserUpdateInfoReq) (*UmUserUpdateInfoRes, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UmUserUpdateInfo not implemented")
 }
-func (UnimplementedGrpcApiServer) UmDelFriend(context.Context, *UmDelFriendReq) (*UmDelFriendRes, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method UmDelFriend not implemented")
+func (UnimplementedGrpcApiServer) UmContactGetList(context.Context, *UmContactGetListReq) (*UmContactGetListRes, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UmContactGetList not implemented")
 }
-func (UnimplementedGrpcApiServer) UmGetFriendList(context.Context, *UmGetFriendListReq) (*UmGetFriendListRes, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method UmGetFriendList not implemented")
+func (UnimplementedGrpcApiServer) UmContactGetInfo(context.Context, *UmContactGetInfoReq) (*UmContactGetInfoRes, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UmContactGetInfo not implemented")
+}
+func (UnimplementedGrpcApiServer) UmContactFind(context.Context, *UmContactFindReq) (*UmContactFindRes, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UmContactFind not implemented")
+}
+func (UnimplementedGrpcApiServer) UmContactAddRequest(context.Context, *UmContactAddRequestReq) (*UmContactAddRequestRes, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UmContactAddRequest not implemented")
+}
+func (UnimplementedGrpcApiServer) UmContactAccept(context.Context, *UmContactAcceptReq) (*UmContactAcceptRes, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UmContactAccept not implemented")
+}
+func (UnimplementedGrpcApiServer) UmContactReject(context.Context, *UmContactRejectReq) (*UmContactRejectRes, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UmContactReject not implemented")
+}
+func (UnimplementedGrpcApiServer) UmContactDel(context.Context, *UmContactDelReq) (*UmContactDelRes, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UmContactDel not implemented")
+}
+func (UnimplementedGrpcApiServer) UmGroupGetList(context.Context, *UmGroupGetListReq) (*UmGroupGetListRes, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UmGroupGetList not implemented")
+}
+func (UnimplementedGrpcApiServer) UmGroupGetInfo(context.Context, *UmGroupGetInfoReq) (*UmGroupGetInfoRes, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UmGroupGetInfo not implemented")
+}
+func (UnimplementedGrpcApiServer) UmGroupUpdateInfo(context.Context, *UmGroupUpdateInfoReq) (*UmGroupUpdateInfoRes, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UmGroupUpdateInfo not implemented")
+}
+func (UnimplementedGrpcApiServer) UmGroupFind(context.Context, *UmGroupFindReq) (*UmGroupFindRes, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UmGroupFind not implemented")
+}
+func (UnimplementedGrpcApiServer) UmGroupCreate(context.Context, *UmGroupCreateReq) (*UmGroupCreateRes, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UmGroupCreate not implemented")
+}
+func (UnimplementedGrpcApiServer) UmGroupDelete(context.Context, *UmGroupDeleteReq) (*UmGroupDeleteRes, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UmGroupDelete not implemented")
+}
+func (UnimplementedGrpcApiServer) UmGroupGetMemList(context.Context, *UmGroupGetMemListReq) (*UmGroupGetMemListRes, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UmGroupGetMemList not implemented")
+}
+func (UnimplementedGrpcApiServer) UmGroupJoinRequest(context.Context, *UmGroupJoinRequestReq) (*UmGroupJoinRequestRes, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UmGroupJoinRequest not implemented")
+}
+func (UnimplementedGrpcApiServer) UmGroupAccept(context.Context, *UmGroupAcceptReq) (*UmGroupAcceptRes, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UmGroupAccept not implemented")
+}
+func (UnimplementedGrpcApiServer) UmGroupReject(context.Context, *UmGroupRejectReq) (*UmGroupRejectRes, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UmGroupReject not implemented")
+}
+func (UnimplementedGrpcApiServer) UmGroupLeave(context.Context, *UmGroupLeaveReq) (*UmGroupLeaveRes, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UmGroupLeave not implemented")
+}
+func (UnimplementedGrpcApiServer) UmGroupAddMem(context.Context, *UmGroupAddMemReq) (*UmGroupAddMemRes, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UmGroupAddMem not implemented")
+}
+func (UnimplementedGrpcApiServer) UmGroupDelMem(context.Context, *UmGroupDelMemReq) (*UmGroupDelMemRes, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UmGroupDelMem not implemented")
+}
+func (UnimplementedGrpcApiServer) UmGroupUpdateMem(context.Context, *UmGroupUpdateMemReq) (*UmGroupUpdateMemRes, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UmGroupUpdateMem not implemented")
 }
 func (UnimplementedGrpcApiServer) ChatSendMsg(context.Context, *ChatSendMsgReq) (*ChatSendMsgRes, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ChatSendMsg not implemented")
 }
-func (UnimplementedGrpcApiServer) ChatCreateGroup(context.Context, *ChatCreateGroupReq) (*ChatCreateGroupRes, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ChatCreateGroup not implemented")
-}
-func (UnimplementedGrpcApiServer) ChatGetGroupList(context.Context, *ChatGetGroupListReq) (*ChatGetGroupListRes, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ChatGetGroupList not implemented")
+func (UnimplementedGrpcApiServer) ChatMarkRead(context.Context, *ChatMarkReadReq) (*ChatMarkReadRes, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ChatMarkRead not implemented")
 }
 func (UnimplementedGrpcApiServer) GetUpdateList(context.Context, *GetUpdateListReq) (*GetUpdateListRes, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetUpdateList not implemented")
@@ -290,56 +546,398 @@ func _GrpcApi_UmUnregister_Handler(srv interface{}, ctx context.Context, dec fun
 	return interceptor(ctx, in, info, handler)
 }
 
-func _GrpcApi_UmAddFriend_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(UmAddFriendReq)
+func _GrpcApi_UmUserUpdateInfo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UmUserUpdateInfoReq)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(GrpcApiServer).UmAddFriend(ctx, in)
+		return srv.(GrpcApiServer).UmUserUpdateInfo(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/gen_grpc.GrpcApi/UmAddFriend",
+		FullMethod: "/gen_grpc.GrpcApi/UmUserUpdateInfo",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(GrpcApiServer).UmAddFriend(ctx, req.(*UmAddFriendReq))
+		return srv.(GrpcApiServer).UmUserUpdateInfo(ctx, req.(*UmUserUpdateInfoReq))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _GrpcApi_UmDelFriend_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(UmDelFriendReq)
+func _GrpcApi_UmContactGetList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UmContactGetListReq)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(GrpcApiServer).UmDelFriend(ctx, in)
+		return srv.(GrpcApiServer).UmContactGetList(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/gen_grpc.GrpcApi/UmDelFriend",
+		FullMethod: "/gen_grpc.GrpcApi/UmContactGetList",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(GrpcApiServer).UmDelFriend(ctx, req.(*UmDelFriendReq))
+		return srv.(GrpcApiServer).UmContactGetList(ctx, req.(*UmContactGetListReq))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _GrpcApi_UmGetFriendList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(UmGetFriendListReq)
+func _GrpcApi_UmContactGetInfo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UmContactGetInfoReq)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(GrpcApiServer).UmGetFriendList(ctx, in)
+		return srv.(GrpcApiServer).UmContactGetInfo(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/gen_grpc.GrpcApi/UmGetFriendList",
+		FullMethod: "/gen_grpc.GrpcApi/UmContactGetInfo",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(GrpcApiServer).UmGetFriendList(ctx, req.(*UmGetFriendListReq))
+		return srv.(GrpcApiServer).UmContactGetInfo(ctx, req.(*UmContactGetInfoReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GrpcApi_UmContactFind_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UmContactFindReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GrpcApiServer).UmContactFind(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/gen_grpc.GrpcApi/UmContactFind",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GrpcApiServer).UmContactFind(ctx, req.(*UmContactFindReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GrpcApi_UmContactAddRequest_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UmContactAddRequestReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GrpcApiServer).UmContactAddRequest(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/gen_grpc.GrpcApi/UmContactAddRequest",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GrpcApiServer).UmContactAddRequest(ctx, req.(*UmContactAddRequestReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GrpcApi_UmContactAccept_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UmContactAcceptReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GrpcApiServer).UmContactAccept(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/gen_grpc.GrpcApi/UmContactAccept",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GrpcApiServer).UmContactAccept(ctx, req.(*UmContactAcceptReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GrpcApi_UmContactReject_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UmContactRejectReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GrpcApiServer).UmContactReject(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/gen_grpc.GrpcApi/UmContactReject",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GrpcApiServer).UmContactReject(ctx, req.(*UmContactRejectReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GrpcApi_UmContactDel_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UmContactDelReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GrpcApiServer).UmContactDel(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/gen_grpc.GrpcApi/UmContactDel",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GrpcApiServer).UmContactDel(ctx, req.(*UmContactDelReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GrpcApi_UmGroupGetList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UmGroupGetListReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GrpcApiServer).UmGroupGetList(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/gen_grpc.GrpcApi/UmGroupGetList",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GrpcApiServer).UmGroupGetList(ctx, req.(*UmGroupGetListReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GrpcApi_UmGroupGetInfo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UmGroupGetInfoReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GrpcApiServer).UmGroupGetInfo(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/gen_grpc.GrpcApi/UmGroupGetInfo",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GrpcApiServer).UmGroupGetInfo(ctx, req.(*UmGroupGetInfoReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GrpcApi_UmGroupUpdateInfo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UmGroupUpdateInfoReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GrpcApiServer).UmGroupUpdateInfo(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/gen_grpc.GrpcApi/UmGroupUpdateInfo",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GrpcApiServer).UmGroupUpdateInfo(ctx, req.(*UmGroupUpdateInfoReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GrpcApi_UmGroupFind_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UmGroupFindReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GrpcApiServer).UmGroupFind(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/gen_grpc.GrpcApi/UmGroupFind",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GrpcApiServer).UmGroupFind(ctx, req.(*UmGroupFindReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GrpcApi_UmGroupCreate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UmGroupCreateReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GrpcApiServer).UmGroupCreate(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/gen_grpc.GrpcApi/UmGroupCreate",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GrpcApiServer).UmGroupCreate(ctx, req.(*UmGroupCreateReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GrpcApi_UmGroupDelete_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UmGroupDeleteReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GrpcApiServer).UmGroupDelete(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/gen_grpc.GrpcApi/UmGroupDelete",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GrpcApiServer).UmGroupDelete(ctx, req.(*UmGroupDeleteReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GrpcApi_UmGroupGetMemList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UmGroupGetMemListReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GrpcApiServer).UmGroupGetMemList(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/gen_grpc.GrpcApi/UmGroupGetMemList",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GrpcApiServer).UmGroupGetMemList(ctx, req.(*UmGroupGetMemListReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GrpcApi_UmGroupJoinRequest_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UmGroupJoinRequestReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GrpcApiServer).UmGroupJoinRequest(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/gen_grpc.GrpcApi/UmGroupJoinRequest",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GrpcApiServer).UmGroupJoinRequest(ctx, req.(*UmGroupJoinRequestReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GrpcApi_UmGroupAccept_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UmGroupAcceptReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GrpcApiServer).UmGroupAccept(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/gen_grpc.GrpcApi/UmGroupAccept",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GrpcApiServer).UmGroupAccept(ctx, req.(*UmGroupAcceptReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GrpcApi_UmGroupReject_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UmGroupRejectReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GrpcApiServer).UmGroupReject(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/gen_grpc.GrpcApi/UmGroupReject",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GrpcApiServer).UmGroupReject(ctx, req.(*UmGroupRejectReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GrpcApi_UmGroupLeave_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UmGroupLeaveReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GrpcApiServer).UmGroupLeave(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/gen_grpc.GrpcApi/UmGroupLeave",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GrpcApiServer).UmGroupLeave(ctx, req.(*UmGroupLeaveReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GrpcApi_UmGroupAddMem_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UmGroupAddMemReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GrpcApiServer).UmGroupAddMem(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/gen_grpc.GrpcApi/UmGroupAddMem",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GrpcApiServer).UmGroupAddMem(ctx, req.(*UmGroupAddMemReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GrpcApi_UmGroupDelMem_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UmGroupDelMemReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GrpcApiServer).UmGroupDelMem(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/gen_grpc.GrpcApi/UmGroupDelMem",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GrpcApiServer).UmGroupDelMem(ctx, req.(*UmGroupDelMemReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GrpcApi_UmGroupUpdateMem_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UmGroupUpdateMemReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GrpcApiServer).UmGroupUpdateMem(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/gen_grpc.GrpcApi/UmGroupUpdateMem",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GrpcApiServer).UmGroupUpdateMem(ctx, req.(*UmGroupUpdateMemReq))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -362,38 +960,20 @@ func _GrpcApi_ChatSendMsg_Handler(srv interface{}, ctx context.Context, dec func
 	return interceptor(ctx, in, info, handler)
 }
 
-func _GrpcApi_ChatCreateGroup_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ChatCreateGroupReq)
+func _GrpcApi_ChatMarkRead_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ChatMarkReadReq)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(GrpcApiServer).ChatCreateGroup(ctx, in)
+		return srv.(GrpcApiServer).ChatMarkRead(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/gen_grpc.GrpcApi/ChatCreateGroup",
+		FullMethod: "/gen_grpc.GrpcApi/ChatMarkRead",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(GrpcApiServer).ChatCreateGroup(ctx, req.(*ChatCreateGroupReq))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _GrpcApi_ChatGetGroupList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ChatGetGroupListReq)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(GrpcApiServer).ChatGetGroupList(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/gen_grpc.GrpcApi/ChatGetGroupList",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(GrpcApiServer).ChatGetGroupList(ctx, req.(*ChatGetGroupListReq))
+		return srv.(GrpcApiServer).ChatMarkRead(ctx, req.(*ChatMarkReadReq))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -440,28 +1020,100 @@ var GrpcApi_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _GrpcApi_UmUnregister_Handler,
 		},
 		{
-			MethodName: "UmAddFriend",
-			Handler:    _GrpcApi_UmAddFriend_Handler,
+			MethodName: "UmUserUpdateInfo",
+			Handler:    _GrpcApi_UmUserUpdateInfo_Handler,
 		},
 		{
-			MethodName: "UmDelFriend",
-			Handler:    _GrpcApi_UmDelFriend_Handler,
+			MethodName: "UmContactGetList",
+			Handler:    _GrpcApi_UmContactGetList_Handler,
 		},
 		{
-			MethodName: "UmGetFriendList",
-			Handler:    _GrpcApi_UmGetFriendList_Handler,
+			MethodName: "UmContactGetInfo",
+			Handler:    _GrpcApi_UmContactGetInfo_Handler,
+		},
+		{
+			MethodName: "UmContactFind",
+			Handler:    _GrpcApi_UmContactFind_Handler,
+		},
+		{
+			MethodName: "UmContactAddRequest",
+			Handler:    _GrpcApi_UmContactAddRequest_Handler,
+		},
+		{
+			MethodName: "UmContactAccept",
+			Handler:    _GrpcApi_UmContactAccept_Handler,
+		},
+		{
+			MethodName: "UmContactReject",
+			Handler:    _GrpcApi_UmContactReject_Handler,
+		},
+		{
+			MethodName: "UmContactDel",
+			Handler:    _GrpcApi_UmContactDel_Handler,
+		},
+		{
+			MethodName: "UmGroupGetList",
+			Handler:    _GrpcApi_UmGroupGetList_Handler,
+		},
+		{
+			MethodName: "UmGroupGetInfo",
+			Handler:    _GrpcApi_UmGroupGetInfo_Handler,
+		},
+		{
+			MethodName: "UmGroupUpdateInfo",
+			Handler:    _GrpcApi_UmGroupUpdateInfo_Handler,
+		},
+		{
+			MethodName: "UmGroupFind",
+			Handler:    _GrpcApi_UmGroupFind_Handler,
+		},
+		{
+			MethodName: "UmGroupCreate",
+			Handler:    _GrpcApi_UmGroupCreate_Handler,
+		},
+		{
+			MethodName: "UmGroupDelete",
+			Handler:    _GrpcApi_UmGroupDelete_Handler,
+		},
+		{
+			MethodName: "UmGroupGetMemList",
+			Handler:    _GrpcApi_UmGroupGetMemList_Handler,
+		},
+		{
+			MethodName: "UmGroupJoinRequest",
+			Handler:    _GrpcApi_UmGroupJoinRequest_Handler,
+		},
+		{
+			MethodName: "UmGroupAccept",
+			Handler:    _GrpcApi_UmGroupAccept_Handler,
+		},
+		{
+			MethodName: "UmGroupReject",
+			Handler:    _GrpcApi_UmGroupReject_Handler,
+		},
+		{
+			MethodName: "UmGroupLeave",
+			Handler:    _GrpcApi_UmGroupLeave_Handler,
+		},
+		{
+			MethodName: "UmGroupAddMem",
+			Handler:    _GrpcApi_UmGroupAddMem_Handler,
+		},
+		{
+			MethodName: "UmGroupDelMem",
+			Handler:    _GrpcApi_UmGroupDelMem_Handler,
+		},
+		{
+			MethodName: "UmGroupUpdateMem",
+			Handler:    _GrpcApi_UmGroupUpdateMem_Handler,
 		},
 		{
 			MethodName: "ChatSendMsg",
 			Handler:    _GrpcApi_ChatSendMsg_Handler,
 		},
 		{
-			MethodName: "ChatCreateGroup",
-			Handler:    _GrpcApi_ChatCreateGroup_Handler,
-		},
-		{
-			MethodName: "ChatGetGroupList",
-			Handler:    _GrpcApi_ChatGetGroupList_Handler,
+			MethodName: "ChatMarkRead",
+			Handler:    _GrpcApi_ChatMarkRead_Handler,
 		},
 		{
 			MethodName: "GetUpdateList",

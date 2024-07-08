@@ -1,5 +1,6 @@
 syntax = "proto3";
 
+// 利用 package 控制版本号
 package gen_grpc;
 
 // generate command：
@@ -8,7 +9,9 @@ package gen_grpc;
 // golang：
 //    protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative ./api.proto
 // js:
-//    protoc --js_out=import_style=commonjs:. --grpc-web_out=import_style=commonjs,mode=grpcwebtext:. api.proto
+//    protoc --js_out=import_style=commonjs:. --grpc-web_out=import_style=typescript,mode=grpcwebtext:. api.proto
+// ts:
+//    protoc --ts_opt=unary_rpc_promise=true --ts_opt=target=web --ts_out . api.proto
 option go_package = "social_server/src/gen/grpc;gen_grpc";
 
 
@@ -21,14 +24,36 @@ service GrpcApi {
   // 用户管理
   rpc UmRegister(UmRegisterReq) returns (UmRegisterRes);
   rpc UmUnregister(UmUnregisterReq) returns (UmUnregisterRes);
-  rpc UmAddFriend(UmAddFriendReq) returns (UmAddFriendRes);
-  rpc UmDelFriend(UmDelFriendReq) returns (UmDelFriendRes);
-  rpc UmGetFriendList(UmGetFriendListReq) returns (UmGetFriendListRes);
+  rpc UmUserUpdateInfo(UmUserUpdateInfoReq) returns (UmUserUpdateInfoRes);
+
+  //  联系人
+  rpc UmContactGetList(UmContactGetListReq) returns (UmContactGetListRes);
+  rpc UmContactGetInfo(UmContactGetInfoReq) returns (UmContactGetInfoRes);
+  rpc UmContactFind(UmContactFindReq) returns (UmContactFindRes);
+  rpc UmContactAddRequest(UmContactAddRequestReq) returns (UmContactAddRequestRes);
+  rpc UmContactAccept(UmContactAcceptReq) returns (UmContactAcceptRes);
+  rpc UmContactReject(UmContactRejectReq) returns (UmContactRejectRes);
+  rpc UmContactDel(UmContactDelReq) returns (UmContactDelRes);
+
+  //  群组
+  rpc UmGroupGetList(UmGroupGetListReq) returns (UmGroupGetListRes);
+  rpc UmGroupGetInfo(UmGroupGetInfoReq) returns (UmGroupGetInfoRes);
+  rpc UmGroupUpdateInfo(UmGroupUpdateInfoReq) returns (UmGroupUpdateInfoRes);
+  rpc UmGroupFind(UmGroupFindReq) returns (UmGroupFindRes);
+  rpc UmGroupCreate(UmGroupCreateReq) returns (UmGroupCreateRes);
+  rpc UmGroupDelete(UmGroupDeleteReq) returns (UmGroupDeleteRes);
+  rpc UmGroupGetMemList(UmGroupGetMemListReq) returns (UmGroupGetMemListRes);
+  rpc UmGroupJoinRequest(UmGroupJoinRequestReq) returns (UmGroupJoinRequestRes);
+  rpc UmGroupAccept(UmGroupAcceptReq) returns (UmGroupAcceptRes);
+  rpc UmGroupReject(UmGroupRejectReq) returns (UmGroupRejectRes);
+  rpc UmGroupLeave(UmGroupLeaveReq) returns (UmGroupLeaveRes);
+  rpc UmGroupAddMem(UmGroupAddMemReq) returns (UmGroupAddMemRes);
+  rpc UmGroupDelMem(UmGroupDelMemReq) returns (UmGroupDelMemRes);
+  rpc UmGroupUpdateMem(UmGroupUpdateMemReq) returns (UmGroupUpdateMemRes);
 
   // 聊天
   rpc ChatSendMsg(ChatSendMsgReq) returns (ChatSendMsgRes);
-  rpc ChatCreateGroup(ChatCreateGroupReq) returns (ChatCreateGroupRes);
-  rpc ChatGetGroupList(ChatGetGroupListReq) returns (ChatGetGroupListRes);
+  rpc ChatMarkRead(ChatMarkReadReq) returns (ChatMarkReadRes);
 
   // 更新事件
   rpc GetUpdateList(GetUpdateListReq) returns (GetUpdateListRes);
@@ -38,14 +63,17 @@ enum ErrCode {
   emErrCode_Ok = 0;
   emErrCode_UnknownErr = 1;
 
-  emErrCode_UserNotRegistered = 10;
-  emErrCode_UserAlreadyRegistered = 11;
-  emErrCode_UserFailedToAuth = 12;
+  emErrCode_SessNotExisted = 100;
 
-  emErrCode_SessNotExisted = 20;
+  emErrCode_UserNotRegistered = 200;
+  emErrCode_UserAlreadyRegistered = 201;
+  emErrCode_UserFailedToAuth = 202;
 
-  emErrCode_ConvIdNotExisted = 30;
-  emErrCode_UserNotInConv = 31;
+  emErrCode_IsContact = 300;
+  emErrCode_IsNotContact = 301;
+
+  emErrCode_GroupNotExisted = 400;
+  emErrCode_UserNotInGroup = 401;
 }
 
 // 会话接口参数
@@ -67,17 +95,22 @@ message SessUserLogoutRes {
 }
 
 // 用户管理接口参数
-message UmFriendInfo {
+message UmContactInfo {
   uint64 uid = 1;
   string username = 2;
   string nickname = 3;
   string noteName = 4;
+  string email = 5;
+  string avatar = 6;
+  bool isMutualContact = 7;
 }
 
 message UmRegisterReq {
   string username = 1;
   string password = 2;
-  string email = 3;
+  string nickname = 3;
+  string email = 4;
+  string avatar = 5;
 }
 message UmRegisterRes {
   ErrCode errCode = 1;
@@ -89,31 +122,208 @@ message UmUnregisterReq {
 message UmUnregisterRes {
   ErrCode errCode = 1;
 }
-
-message UmAddFriendReq {
+message UmUserUpdateInfoReq {
   string sessId = 1;
-  UmFriendInfo friend = 2;
+  string nickname = 2;
+  string email = 3;
+  string avatar = 4;
+  string password = 5;
+  string newPassword = 6;
 }
-message UmAddFriendRes {
+message UmUserUpdateInfoRes {
   ErrCode errCode = 1;
 }
 
-message UmDelFriendReq {
+message UmContactGetListReq {
   string sessId = 1;
-  uint64 friendUid = 2;
 }
-message UmDelFriendRes {
+message UmContactGetListRes {
+  ErrCode errCode = 1;
+  repeated UmContactInfo contactList = 2;
+}
+
+message UmContactGetInfoReq {
+  string sessId = 1;
+  uint64 userId = 2;
+}
+message UmContactGetInfoRes {
+  ErrCode errCode = 1;
+  UmContactInfo userInfo = 2;
+}
+
+message UmContactFindReq {
+  string sessId = 1;
+  string username = 2;
+}
+message UmContactFindRes {
+  ErrCode errCode = 1;
+  UmContactInfo userInfo = 2;
+}
+
+message UmContactAddRequestReq {
+  string sessId = 1;
+  uint64 contactUid = 2;
+}
+message UmContactAddRequestRes {
   ErrCode errCode = 1;
 }
 
-message UmGetFriendListReq {
+message UmContactAcceptReq {
   string sessId = 1;
+  uint64 contactUid = 2;
 }
-message UmGetFriendListRes {
+message UmContactAcceptRes {
   ErrCode errCode = 1;
-  repeated UmFriendInfo friendList = 2;
 }
 
+message UmContactRejectReq {
+  string sessId = 1;
+  uint64 contactUid = 2;
+}
+message UmContactRejectRes {
+  ErrCode errCode = 1;
+}
+
+message UmContactDelReq {
+  string sessId = 1;
+  uint64 contactUid = 2;
+}
+message UmContactDelRes {
+  ErrCode errCode = 1;
+}
+
+message UmGroupInfo {
+  uint64 groupId = 1;
+  string groupName = 2;
+  uint64 ownerUid = 3;
+  string avatar = 4;
+  uint64 memCount = 5;
+  uint64 createTsMs = 6;
+}
+
+message UmGroupGetListReq {
+  string sessId = 1;
+}
+message UmGroupGetListRes {
+  ErrCode errCode = 1;
+  repeated UmGroupInfo groupList = 2;
+}
+
+message UmGroupGetInfoReq {
+  string sessId = 1;
+  uint64 groupId = 2;
+}
+message UmGroupGetInfoRes {
+  ErrCode errCode = 1;
+  UmGroupInfo groupInfo = 2;
+}
+
+message UmGroupUpdateInfoReq {
+  string sessId = 1;
+  uint64 groupId = 2;
+  string groupName = 3;
+  string avatar = 4;
+}
+message UmGroupUpdateInfoRes {
+  ErrCode errCode = 1;
+}
+
+message UmGroupFindReq {
+  string sessId = 1;
+  uint64 groupId = 2;
+}
+message UmGroupFindRes {
+  ErrCode errCode = 1;
+  UmGroupInfo groupInfo = 2;
+}
+
+message UmGroupCreateReq {
+  string sessId = 1;
+  string groupName = 2;
+}
+message UmGroupCreateRes {
+  ErrCode errCode = 1;
+  uint64 groupId = 2;
+}
+
+message UmGroupDeleteReq {
+  string sessId = 1;
+  uint64 groupId = 2;
+}
+message UmGroupDeleteRes {
+  ErrCode errCode = 1;
+}
+
+message UmGroupGetMemListReq {
+  string sessId = 1;
+  uint64 groupId = 2;
+}
+message UmGroupGetMemListRes {
+  ErrCode errCode = 1;
+  repeated uint64 memUidList = 2;
+}
+
+message UmGroupJoinRequestReq {
+  string sessId = 1;
+  uint64 groupId = 2;
+}
+message UmGroupJoinRequestRes {
+  ErrCode errCode = 1;
+}
+
+message UmGroupAcceptReq {
+  string sessId = 1;
+  uint64 groupId = 2;
+  uint64 uid = 3;
+}
+message UmGroupAcceptRes {
+  ErrCode errCode = 1;
+}
+
+message UmGroupRejectReq {
+  string sessId = 1;
+  uint64 groupId = 2;
+  uint64 uid = 3;
+}
+message UmGroupRejectRes {
+  ErrCode errCode = 1;
+}
+
+message UmGroupLeaveReq {
+  string sessId = 1;
+  uint64 groupId = 2;
+}
+message UmGroupLeaveRes {
+  ErrCode errCode = 1;
+}
+
+message UmGroupAddMemReq {
+  string sessId = 1;
+  uint64 groupId = 2;
+  uint64 uid = 3;
+}
+message UmGroupAddMemRes {
+  ErrCode errCode = 1;
+}
+
+message UmGroupDelMemReq {
+  string sessId = 1;
+  uint64 groupId = 2;
+  uint64 uid = 3;
+}
+message UmGroupDelMemRes {
+  ErrCode errCode = 1;
+}
+
+message UmGroupUpdateMemReq {
+  string sessId = 1;
+  uint64 groupId = 2;
+  uint64 uid = 3;
+  uint32 role = 4;    // 0: 普通成员, 1: 群主, 2: 管理员
+}
+message UmGroupUpdateMemRes {
+  ErrCode errCode = 1;
+}
 
 // 聊天接口参数
 message ChatPeerId {
@@ -125,6 +335,21 @@ message ChatPeerId {
 
 enum ChatMsgType {
   emChatMsgType_Text = 0;
+
+  emChatMsgType_MarkRead = 50;
+
+  emChatMsgType_ContactAddReq = 100;
+  emChatMsgType_ContactAdded = 101;
+  emChatMsgType_ContactRejected = 102;
+  emChatMsgType_ContactDeleted = 103;
+
+  emChatMsgType_GroupCreated = 200;
+  emChatMsgType_GroupDeleted = 201;
+  emChatMsgType_GroupJoinReq = 202;
+  emChatMsgType_GroupUserJoined = 203;
+  emChatMsgType_GroupRejected = 204;
+  emChatMsgType_GroupUserLeft = 205;
+  emChatMsgType_GroupUserRemoved = 206;
 }
 
 message ChatMsg {
@@ -132,13 +357,17 @@ message ChatMsg {
   uint64 sentTsMs = 2;
   ChatMsgType msgType = 3;
   string msgContent = 4;
+  uint64 readMsgId = 5;     // 仅当消息类型为 ReadMsg 时，此字段有效
 }
 
 message ChatConvMsg {
-  uint64 msgId = 1;         // 发送消息时忽略此字段
-  uint64 randMsgId = 2;     // 由客户端生成随机ID
-  ChatPeerId receiverId = 3;
-  ChatMsg msg = 4;
+  uint64 seqId = 1;         // 发送消息时忽略此字段
+  ChatPeerId receiverId = 2;
+  ChatMsg msg = 3;
+  uint64 convMsgId = 4;     // 发送消息时忽略此字段
+  uint64 randMsgId = 5;     // 由客户端生成随机 ID
+  bool isRead = 6;
+  uint32 status = 7;
 }
 
 message ChatConvInfo {
@@ -154,20 +383,13 @@ message ChatSendMsgRes {
   ErrCode errCode = 1;
 }
 
-message ChatCreateGroupReq {
+message ChatMarkReadReq {
   string sessId = 1;
+  ChatPeerId convId = 2;
+  uint64 readMsgId = 3;
 }
-message ChatCreateGroupRes {
+message ChatMarkReadRes {
   ErrCode errCode = 1;
-  uint64 convId = 2;
-}
-
-message ChatGetGroupListReq {
-  string sessId = 1;
-}
-message ChatGetGroupListRes {
-  ErrCode errCode = 1;
-  repeated uint64 convIdList = 2;
 }
 
 message GetUpdateListReq {
