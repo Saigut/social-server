@@ -62,6 +62,7 @@ service GrpcApi {
 enum ErrCode {
   emErrCode_Ok = 0;
   emErrCode_UnknownErr = 1;
+  emErrCode_Timeout = 2;
 
   emErrCode_SessNotExisted = 100;
 

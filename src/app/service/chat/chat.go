@@ -3,15 +3,16 @@ package chat
 import (
 	"context"
 	"fmt"
+	"github.com/go-redis/redis/v8"
 	"log"
 	"os"
+	"social_server/src/app/common/proj_err"
 	"social_server/src/app/common/types"
 	"social_server/src/app/data"
 	gen_grpc "social_server/src/gen/grpc"
 	. "social_server/src/utils/log"
 	"strconv"
 	"sync"
-	"github.com/go-redis/redis/v8"
 	"time"
 )
 
@@ -98,7 +99,7 @@ func (p *Chat) getUserSync(uid uint64) (*UserSync) {
 	return us
 }
 
-func (p *Chat) waitForNewMessage(uid uint64) {
+func (p *Chat) waitForNewMessage(uid uint64) error {
 	us := p.getUserSync(uid)
 	pubsub := p.redisClient.Subscribe(context.Background(), us.channelName)
 	defer pubsub.Close()
@@ -107,8 +108,10 @@ func (p *Chat) waitForNewMessage(uid uint64) {
 	select {
 	case <-ch:
 		// 收到新消息通知
-	case <-time.After(120 * time.Second):
+		return nil
+	case <-time.After(58 * time.Second):
 		// 超时退出
+		return fmt.Errorf("%w", proj_err.ErrTimeout)
 	}
 }
 
@@ -126,7 +129,10 @@ func (p *Chat) GetChatMsgList(uid uint64, seqId uint64) (msgList []types.ChatMsg
 	}
 
 	// 如果 seqId 是最新的，则等待
-	p.waitForNewMessage(uid)
+	err = p.waitForNewMessage(uid)
+	if err != nil {
+		return nil, fmt.Errorf("waitForNewMessage: %w", err)
+	}
 
 	msgList, err = p.storage.ChatGetMsgList(uid, seqId)
 	if err != nil {

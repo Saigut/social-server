@@ -1,9 +1,11 @@
 package core
 
 import (
+	"errors"
 	"github.com/joho/godotenv"
 	"log"
 	"os"
+	"social_server/src/app/common/proj_err"
 	"social_server/src/app/common/types"
 	"social_server/src/app/common/utils"
 	"social_server/src/app/data"
@@ -1222,8 +1224,13 @@ func (p *Core) GetUpdateList(req *gen_grpc.GetUpdateListReq) (*gen_grpc.GetUpdat
 	msgList, err = p.chat.GetChatMsgList(sessCtx.Uid, req.GetLocalSeqId())
 	if err != nil {
 		Log.Error("ChatGetMsgList: %s", err.Error())
-		res.ErrCode = gen_grpc.ErrCode_emErrCode_UnknownErr
-		return &res, nil
+		if errors.Is(err, proj_err.ErrTimeout) {
+			res.ErrCode = gen_grpc.ErrCode_emErrCode_Timeout
+			return &res, nil
+		} else {
+			res.ErrCode = gen_grpc.ErrCode_emErrCode_UnknownErr
+			return &res, nil
+		}
 	}
 	for _, aConvMsg := range msgList {
 		aBoxMsgApi := &gen_grpc.ChatConvMsg{
