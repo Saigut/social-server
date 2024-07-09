@@ -1,6 +1,6 @@
 Social Server
 -------------
-[中文](README_CN.md)
+[中文](extra/docs/README_CN.md)
 
 # Introduction
 This project implements an instant messaging server with the following main features:
@@ -10,6 +10,9 @@ This project implements an instant messaging server with the following main feat
 - Uses a write dissemination message handling approach
 - The main logic module is a Stateless module, which facilitates dynamic scaling
 - The API uses the gRpc framework. Thanks to the encapsulation of the main logic interface, it is easy to add support for other interface protocols, such as RESTful API, Websocket, etc.
+
+# Preview
+- URL： [letstalk.ink](https://letstalk.ink)
 
 # How to Use
 ## Tool Dependencies
@@ -54,3 +57,8 @@ go build -o social_server ./src/server.go
 
 Run:  
 This program listens on port 10080. It is recommended to run it in a container.
+
+# Client Development
+Please refer to the [api.proto](extra/protos/api.proto) file for integration.
+
+Client example: [Saigut/LumenIM](https://github.com/Saigut/LumenIM)
