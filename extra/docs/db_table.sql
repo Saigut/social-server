@@ -3,12 +3,12 @@ CREATE DATABASE IF NOT EXISTS social_server;
 CREATE TABLE social_server.tb_users (
     user_id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
     password VARCHAR(100) NOT NULL,
-    username VARCHAR(50) NOT NULL UNIQUE,
+    username VARCHAR(50) NOT NULL COLLATE utf8_general_ci UNIQUE,
     nickname VARCHAR(50) NOT NULL,
     email VARCHAR(100) UNIQUE,
     avatar VARCHAR(100) DEFAULT '',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-);
+) CHARACTER SET utf8 COLLATE utf8_general_ci;
 
 CREATE TABLE social_server.tb_user_contacts (
     user_id BIGINT UNSIGNED,

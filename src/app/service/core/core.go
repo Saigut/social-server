@@ -89,7 +89,7 @@ func (p *Core) SessUserLogin(req *gen_grpc.SessUserLoginReq) (*gen_grpc.SessUser
 
 	// 创建新会话
 	var sessId types.SessId
-	sessId, err = p.sessMgmt.CreateSess(req.GetUsername(), userInfo.Uid, p.sessTimoutS)
+	sessId, err = p.sessMgmt.CreateSess(userInfo.Username, userInfo.Uid, p.sessTimoutS)
 	if err != nil {
 		Log.Error("CreateSess: %s", err.Error())
 		res.ErrCode = gen_grpc.ErrCode_emErrCode_UnknownErr

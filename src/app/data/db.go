@@ -386,7 +386,7 @@ func (p *DB) AllocateGroupSeqId(groupId uint64) (seqId uint64, err error) {
 
 // UserMgmt
 func (p *DB) UserIsUsernameExisted(username string) (bool, error) {
-	row, err := p.queryRow("SELECT COUNT(*) FROM tb_users WHERE username = ?", username)
+	row, err := p.queryRow("SELECT COUNT(*) FROM tb_users WHERE LOWER(username) = LOWER(?)", username)
 	var count int
 	err = row.Scan(&count)
 	if err != nil {
@@ -445,12 +445,12 @@ func (p *DB) UserGetInfo(uid uint64) (user *types.UmUserInfo, err error) {
 }
 
 func (p *DB) UserGetInfoByUsername(username string) (user *types.UmUserInfo, err error) {
-	row, err := p.queryRow("SELECT user_id, username, nickname, email, avatar FROM tb_users WHERE username = ?", username)
+	row, err := p.queryRow("SELECT user_id, password, username, nickname, email, avatar FROM tb_users WHERE LOWER(username) = LOWER(?)", username)
 	if err != nil {
 		return nil, err
 	}
 	var userRow User
-	err = row.Scan(&userRow.UserID, &userRow.Username, &userRow.Nickname, &userRow.Email, &userRow.Avatar)
+	err = row.Scan(&userRow.UserID, &userRow.Password, &userRow.Username, &userRow.Nickname, &userRow.Email, &userRow.Avatar)
 	if err != nil {
 		return nil, err
 	}

@@ -128,7 +128,6 @@ func (p *Chat) GetChatMsgList(uid uint64, seqId uint64) (msgList []types.ChatMsg
 		}
 	}
 
-	// 如果 seqId 是最新的，则等待
 	err = p.waitForNewMessage(uid)
 	if err != nil {
 		return nil, fmt.Errorf("waitForNewMessage: %w", err)
