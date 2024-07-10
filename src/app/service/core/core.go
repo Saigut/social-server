@@ -405,6 +405,18 @@ func (p *Core) UmContactAddRequest(req *gen_grpc.UmContactAddRequestReq) (*gen_g
 		return &res, nil
 	}
 
+	// 判断是否已为好友
+	isMutualContact, _, err := p.userMgmt.ContactGetRelation(sessCtx.Uid, req.GetContactUid())
+	if err != nil {
+		Log.Error("ContactGetRelation: %s", err.Error())
+		res.ErrCode = gen_grpc.ErrCode_emErrCode_UnknownErr
+		return &res, nil
+	}
+	if isMutualContact {
+		res.ErrCode = gen_grpc.ErrCode_emErrCode_IsContact
+		return &res, nil
+	}
+
 	// 发送好友申请消息
 	var msg types.ChatMsgOfConv
 	msg.ReceiverId.PeerIdType = types.EmPeerIdType_Uid
@@ -823,6 +835,18 @@ func (p *Core) UmGroupJoinRequest(req *gen_grpc.UmGroupJoinRequestReq) (*gen_grp
 		return &res, nil
 	}
 
+	// 判断是否已是群员
+	inGroup, err := p.userMgmt.GroupIsMem(req.GetGroupId(), sessCtx.Uid)
+	if err != nil {
+		Log.Error("GroupIsMem: %s", err.Error())
+		res.ErrCode = gen_grpc.ErrCode_emErrCode_UnknownErr
+		return &res, nil
+	}
+	if inGroup {
+		res.ErrCode = gen_grpc.ErrCode_emErrCode_UnknownErr
+		return &res, nil
+	}
+
 	// 向每个管理员发送入群申请消息
 	var msg types.ChatMsgOfConv
 	msg.ReceiverId.PeerIdType = types.EmPeerIdType_GroupId
@@ -1103,7 +1127,7 @@ func (p *Core) ChatSendMsg(req *gen_grpc.ChatSendMsgReq) (*gen_grpc.ChatSendMsgR
 	var convMsg types.ChatMsgOfConv
 	switch x := req.GetConvMsg().GetReceiverId().GetPeerIdUnion().(type) {
 	case *gen_grpc.ChatPeerId_Uid:
-		// 判断是否为好友 ContactGetRelation
+		// 判断是否为好友
 		isMutualContact, _, err := p.userMgmt.ContactGetRelation(sessCtx.Uid, x.Uid)
 		if err != nil {
 			Log.Error("ContactGetRelation: %s", err.Error())
