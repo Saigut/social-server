@@ -1,3 +1,6 @@
+SET GLOBAL time_zone = '+00:00';
+SET SESSION time_zone = '+00:00';
+
 CREATE DATABASE IF NOT EXISTS social_server;
 
 CREATE TABLE social_server.tb_users (

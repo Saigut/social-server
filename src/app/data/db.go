@@ -113,7 +113,7 @@ func NewStorage() *DB {
 		dbPort = "3306"
 	}
 
-	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=true&loc=Local", dbUser, dbPassword, dbHost, dbPort, dbName)
+	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=true&loc=UTC", dbUser, dbPassword, dbHost, dbPort, dbName)
 
 	return &DB{
 		dsn:                  dsn,
