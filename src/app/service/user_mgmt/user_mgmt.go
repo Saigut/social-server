@@ -352,11 +352,19 @@ func (p *UserMgmt) GroupIsMem(groupId uint64, uid uint64) (inGroup bool, err err
 	return inGroup, nil
 }
 
+func (p *UserMgmt) GroupClearMsg(groupId uint64, uid uint64) (err error) {
+	err = p.storage.GroupClearMsg(groupId, uid)
+	if err != nil {
+		return fmt.Errorf("GroupClearMsg: %w", err)
+	}
+	return nil
+}
+
 func (p *UserMgmt) GroupLeave(groupId uint64, uid uint64) (err error) {
 	// 更新数据库
-	err = p.storage.GroupDelMem(groupId, uid)
+	err = p.storage.GroupLeave(groupId, uid)
 	if err != nil {
-		return fmt.Errorf("GroupDelMem: %w", err)
+		return fmt.Errorf("GroupLeave: %w", err)
 	}
 	return nil
 }

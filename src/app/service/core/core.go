@@ -949,6 +949,25 @@ func (p *Core) UmGroupLeave(req *gen_grpc.UmGroupLeaveReq) (*gen_grpc.UmGroupLea
 		return &res, nil
 	}
 
+	// 判断是否仍群成员
+	inGroup, err := p.userMgmt.GroupIsMem(req.GetGroupId(), sessCtx.Uid)
+	if err != nil {
+		Log.Error("GroupIsMem: %s", err.Error())
+		res.ErrCode = gen_grpc.ErrCode_emErrCode_UnknownErr
+		return &res, nil
+	}
+	if !inGroup {
+		// 仅删除消息
+		err = p.userMgmt.GroupClearMsg(req.GetGroupId(), sessCtx.Uid)
+		if err != nil {
+			Log.Error("GroupClearMsg: %s", err.Error())
+			res.ErrCode = gen_grpc.ErrCode_emErrCode_UnknownErr
+			return &res, nil
+		}
+		res.ErrCode = gen_grpc.ErrCode_emErrCode_Ok
+		return &res, nil
+	}
+
 	// 分配群聊消息序列号
 	seqId, err := p.chat.AllocateGroupSeqId(req.GetGroupId())
 	if err != nil {
@@ -976,6 +995,9 @@ func (p *Core) UmGroupLeave(req *gen_grpc.UmGroupLeaveReq) (*gen_grpc.UmGroupLea
 
 	// 发送退出群聊消息
 	for _, uid := range memList {
+		if uid == sessCtx.Uid {
+			continue
+		}
 		var msg types.ChatMsgOfConv
 		msg.ReceiverId.PeerIdType = types.EmPeerIdType_GroupId
 		msg.ReceiverId.GroupId = req.GetGroupId()

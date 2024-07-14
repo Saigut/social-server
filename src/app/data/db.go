@@ -608,6 +608,16 @@ func (p *DB) ContactDel(uid uint64, contactUid uint64) (error) {
 	if err != nil {
 		return fmt.Errorf("sqlExec: %w", err)
 	}
+	_, err = p.sqlExec("DELETE FROM tb_user_inbox WHERE user_id = ? AND sender_id = ? AND receiver_id = ?",
+		uid, contactUid, uid)
+	if err != nil {
+		return fmt.Errorf("sqlExec: %w", err)
+	}
+	_, err = p.sqlExec("DELETE FROM tb_user_inbox WHERE user_id = ? AND sender_id = ? AND receiver_id = ?",
+		uid, uid, contactUid)
+	if err != nil {
+		return fmt.Errorf("sqlExec: %w", err)
+	}
 	return nil
 }
 
@@ -796,6 +806,34 @@ func (p *DB) GroupIsMem(groupId uint64, uid uint64) (inGroup bool, err error) {
 	return count > 0, nil
 }
 
+func (p *DB) GroupClearMsg(groupId uint64, uid uint64) (err error) {
+	// 删除群聊消息
+	_, err = p.sqlExec("DELETE FROM tb_user_inbox WHERE user_id = ? AND group_id = ?", uid, groupId)
+	if err != nil {
+		return fmt.Errorf("sqlExec: %w", err)
+	}
+	return nil
+}
+
+func (p *DB) GroupLeave(groupId uint64, uid uint64) (err error) {
+	// 删除群成员
+	_, err = p.sqlExec("DELETE FROM tb_group_members WHERE group_id = ? AND user_id = ?", groupId, uid)
+	if err != nil {
+		return fmt.Errorf("Member sqlExec: %w", err)
+	}
+	// 更新群成员数量
+	_, err = p.sqlExec("UPDATE tb_groups SET mem_count = mem_count - 1 WHERE group_id = ?", groupId)
+	if err != nil {
+		return fmt.Errorf("Count sqlExec: %w", err)
+	}
+	// 为此用户删除群聊消息
+	_, err = p.sqlExec("DELETE FROM tb_user_inbox WHERE user_id = ? AND group_id = ?", uid, groupId)
+	if err != nil {
+		return fmt.Errorf("Inbox sqlExec: %w", err)
+	}
+	return nil
+}
+
 func (p *DB) GroupAddMem(groupId uint64, uid uint64, role uint) (err error) {
 	// 添加群成员
 	_, err = p.sqlExec("INSERT INTO tb_group_members (group_id, user_id, role) VALUES (?, ?, ?)", groupId, uid, role)
@@ -862,8 +900,51 @@ func (p *DB) GroupUpdateMem(groupId uint64, uid uint64, role uint) (err error) {
 	return nil
 }
 
-func (p *DB) ChatSendMsg(convMsg types.ChatMsgOfConv) (err error) {
+func (p *DB) ChatSendMsgToUser(uid uint64, convMsg types.ChatMsgOfConv) (err error) {
+	var receiverId interface{}
+	var groupId interface{}
+	if convMsg.ReceiverId.PeerIdType == types.EmPeerIdType_Uid {
+		receiverId = convMsg.ReceiverId.Uid
+		groupId = nil
+		if convMsg.Msg.MsgType == gen_grpc.ChatMsgType_emChatMsgType_MarkRead {
+			// 删除 sender 发向 receiver 的已读消息
+			_, err = p.sqlExec("DELETE FROM tb_user_inbox WHERE user_id = ? AND sender_id = ?  AND receiver_id = ? AND message_type = ? AND read_msg_id <= ?",
+				uid, convMsg.Msg.SenderUid, receiverId, gen_grpc.ChatMsgType_emChatMsgType_MarkRead, convMsg.Msg.ReadMsgId)
+			if err != nil {
+				Log.Warn("sqlExec: %s", err)
+			}
+		}
+	} else {
+		groupId = convMsg.ReceiverId.GroupId
+		receiverId = nil
+		if convMsg.Msg.MsgType == gen_grpc.ChatMsgType_emChatMsgType_MarkRead {
+			// 删除 sender 发向 group 的已读消息
+			_, err = p.sqlExec("DELETE FROM tb_user_inbox WHERE user_id = ? AND sender_id = ?  AND group_id = ? AND message_type = ? AND read_msg_id <= ?",
+				uid, convMsg.Msg.SenderUid, groupId, gen_grpc.ChatMsgType_emChatMsgType_MarkRead, convMsg.Msg.ReadMsgId)
+			if err != nil {
+				Log.Warn("sqlExec: %s", err)
+			}
+		}
+	}
 
+	// 分配 seqId
+	var seqId uint64
+	seqId, err = p.AllocateSeqId(uid)
+	if err != nil {
+		return fmt.Errorf("AllocateSeqId: %w", err)
+	}
+
+	// 添加消息
+	_, err = p.sqlExec("INSERT INTO tb_user_inbox (user_id, seq_id, conv_msg_id, rand_msg_id, sender_id, receiver_id, group_id, content, message_type, read_msg_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+		uid, seqId, convMsg.ConvMsgId, convMsg.RandMsgId, convMsg.Msg.SenderUid, receiverId, groupId, convMsg.Msg.MsgContent, convMsg.Msg.MsgType, convMsg.Msg.ReadMsgId)
+	if err != nil {
+		return fmt.Errorf("user sqlExec: %w", err)
+	}
+
+	return err
+}
+
+func (p *DB) ChatSendMsg(convMsg types.ChatMsgOfConv) (err error) {
 	if convMsg.ReceiverId.PeerIdType == types.EmPeerIdType_Uid {
 		// 分配 msgId
 		convMsg.ConvMsgId, err = p.AllocateChatSeqId(convMsg.Msg.SenderUid, convMsg.ReceiverId.Uid)
@@ -872,23 +953,15 @@ func (p *DB) ChatSendMsg(convMsg types.ChatMsgOfConv) (err error) {
 		}
 
 		// 添加消息
-		var seqId uint64
-		seqId, err = p.AllocateSeqId(convMsg.ReceiverId.Uid)
+		err = p.ChatSendMsgToUser(convMsg.ReceiverId.Uid, convMsg)
 		if err != nil {
-			return fmt.Errorf("AllocateSeqId: %w", err)
-		}
-		_, err = p.sqlExec("INSERT INTO tb_user_inbox (user_id, seq_id, conv_msg_id, rand_msg_id, sender_id, receiver_id, group_id, content, message_type, read_msg_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-			convMsg.ReceiverId.Uid, seqId, convMsg.ConvMsgId, convMsg.RandMsgId, convMsg.Msg.SenderUid, convMsg.ReceiverId.Uid, nil, convMsg.Msg.MsgContent, convMsg.Msg.MsgType, convMsg.Msg.ReadMsgId)
-		if err != nil {
-			return fmt.Errorf("user sqlExec: %w, receiver id: %v, seqid: %v", err)
+			return fmt.Errorf("Receiver ChatSendMsgTo: %w", err)
 		}
 
-		// 也为发送者发送消息
-		seqId, err = p.AllocateSeqId(convMsg.Msg.SenderUid)
-		_, err = p.sqlExec("INSERT INTO tb_user_inbox (user_id, seq_id, conv_msg_id, rand_msg_id, sender_id, receiver_id, group_id, content, message_type, read_msg_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-			convMsg.Msg.SenderUid, seqId, convMsg.ConvMsgId, convMsg.RandMsgId, convMsg.Msg.SenderUid, convMsg.ReceiverId.Uid, nil, convMsg.Msg.MsgContent, convMsg.Msg.MsgType, convMsg.Msg.ReadMsgId)
+		// 也为发送者添加消息
+		err = p.ChatSendMsgToUser(convMsg.Msg.SenderUid, convMsg)
 		if err != nil {
-			return fmt.Errorf("user sqlExec: %w", err)
+			return fmt.Errorf("Sender ChatSendMsgTo: %w", err)
 		}
 
 	} else {
@@ -905,44 +978,14 @@ func (p *DB) ChatSendMsg(convMsg types.ChatMsgOfConv) (err error) {
 		}
 
 		for _, memberUid := range memberList {
-			// 分配 seqId
-			seqId, err := p.AllocateSeqId(memberUid)
-			if err != nil {
-				return fmt.Errorf("AllocateSeqId: %w", err)
-			}
-
 			// 添加消息
-			_, err = p.sqlExec("INSERT INTO tb_user_inbox (user_id, seq_id, conv_msg_id, rand_msg_id, sender_id, receiver_id, group_id, content, message_type, read_msg_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-				memberUid, seqId, convMsg.ConvMsgId, convMsg.RandMsgId, convMsg.Msg.SenderUid, nil, convMsg.ReceiverId.GroupId, convMsg.Msg.MsgContent, convMsg.Msg.MsgType, convMsg.Msg.ReadMsgId)
+			err = p.ChatSendMsgToUser(memberUid, convMsg)
 			if err != nil {
-				return fmt.Errorf("group sqlExec: %w", err)
+				return fmt.Errorf("Group ChatSendMsgTo: %w", err)
 			}
 		}
 	}
 
-	return err
-}
-
-func (p *DB) ChatSendMsgToUser(uid uint64, convMsg types.ChatMsgOfConv) (err error) {
-	var receiverId interface{}
-	var groupId interface{}
-	if convMsg.ReceiverId.PeerIdType == types.EmPeerIdType_Uid {
-		receiverId = convMsg.ReceiverId.Uid
-		groupId = nil
-	} else {
-		groupId = convMsg.ReceiverId.GroupId
-		receiverId = nil
-	}
-	var seqId uint64
-	seqId, err = p.AllocateSeqId(uid)
-	if err != nil {
-		return fmt.Errorf("AllocateSeqId: %w", err)
-	}
-	_, err = p.sqlExec("INSERT INTO tb_user_inbox (user_id, seq_id, conv_msg_id, rand_msg_id, sender_id, receiver_id, group_id, content, message_type, read_msg_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-		uid, seqId, convMsg.ConvMsgId, convMsg.RandMsgId, convMsg.Msg.SenderUid, receiverId, groupId, convMsg.Msg.MsgContent, convMsg.Msg.MsgType, convMsg.Msg.ReadMsgId)
-	if err != nil {
-		return fmt.Errorf("user sqlExec: %w, receiver id: %v, seqid: %v", err)
-	}
 	return err
 }
 
